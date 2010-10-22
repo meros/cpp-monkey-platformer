@@ -268,5 +268,5 @@ World::Draw(
 
 	myCollisionWorld.SetDebugDraw(&drawer);
 	drawer.Set(aTarget, xscale, yscale, xtrans, ytrans);
-	myCollisionWorld.DrawDebugData();
+        //myCollisionWorld.DrawDebugData();
 }

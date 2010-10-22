@@ -71,7 +71,7 @@ Rope::Draw(
 		float x = ((*it)->GetPosition().x-aXTranslate)*aXScale;
 		float y = ((*it)->GetPosition().y-aYTranslate)*aYScale;
 
-		mySprite.DrawStretchRotation(aTarget, x, y, 0.2*aYScale*1.1, (*it)->GetAngle());
+                mySprite.DrawStretchRotation(aTarget, x, y, aYScale/3, (*it)->GetAngle());
 	}
 }
 

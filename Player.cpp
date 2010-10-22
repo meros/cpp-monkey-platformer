@@ -51,15 +51,15 @@ Player::Player(
 	myState = STATE_MidAir;
 	myJumpBtnReleased = true;
 
-	myStandRightSprite.LoadTGA("data/mario_stand_right.tga");
+        myStandRightSprite.LoadTGA("data/apa_stand_right.tga");
 	myBreakRightSprite.LoadTGA("data/mario_break_right.tga");
 
 	myWalk1RightSprite.LoadTGA("data/apa_walk_right_1.tga");
 	myWalk2RightSprite.LoadTGA("data/apa_walk_right_2.tga");
 
-	myJumpRightSprite.LoadTGA("data/mario_jump_right.tga");
+        myJumpRightSprite.LoadTGA("data/apa_jump_right.tga");
 
-	myStandLeftSprite.LoadTGA("data/mario_stand_left.tga");
+        myStandLeftSprite.LoadTGA("data/apa_stand_left.tga");
 	myBreakLeftSprite.LoadTGA("data/mario_break_left.tga");
 
 	myWalk1LeftSprite.LoadTGA("data/apa_walk_right_1.tga");
@@ -67,7 +67,7 @@ Player::Player(
 	myWalk2LeftSprite.LoadTGA("data/apa_walk_right_2.tga");
 	myWalk2LeftSprite.Mirror();
 
-	myJumpLeftSprite.LoadTGA("data/mario_jump_left.tga");
+        myJumpLeftSprite.LoadTGA("data/apa_jump_left.tga");
 
 	// Set up collision box
 	b2BodyDef dropboxDef;
@@ -128,6 +128,7 @@ Player::Update(
 		anchor*=0.5;
 		jointDef.Initialize(myTouchedRopeBody, myCollisionBody, anchor);
 		jointDef.collideConnected = false;
+
 
 		myRopeJoint = myWorld.CreateJoint(&jointDef);	
 	}
@@ -330,7 +331,7 @@ Player::Draw(
 	}
 	else
 	{
-		if (myDirectionIsRight)
+            if (myDirectionIsRight)
 		{
 			spriteToDraw = &myJumpRightSprite;
 		}
