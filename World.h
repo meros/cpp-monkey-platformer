@@ -10,6 +10,7 @@
 
 #include "Block.h"
 #include "Rope.h"
+#include "Bridge.h"
 #include "Player.h"
 
 #include <vector>
@@ -30,7 +31,8 @@ private:
 
 
 	std::vector<Block*> 	myBlocks;
-	std::vector<Rope*> 		myRopes;
+        std::vector<Rope*> 	myRopes;
+        std::vector<Bridge*> 	myBridges;
 	Player* 		myPlayer;
 	ContactListener* myContactListener;
 

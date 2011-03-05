@@ -16,7 +16,6 @@ TEMPLATE = app
 
 LIBS += -lsfml-graphics -lsfml-window -lsfml-system -lBox2D
 
-
 SOURCES += main.cpp \
     World.cpp \
     TMatrix.cpp \
@@ -26,7 +25,8 @@ SOURCES += main.cpp \
     Player.cpp \
     DummyDrawable.cpp \
     ContactListener.cpp \
-    Block.cpp
+    Block.cpp \
+    Bridge.cpp
 
 OTHER_FILES += \
     TheGame.pro.user \
@@ -64,4 +64,5 @@ HEADERS += \
     IDrawable.h \
     DummyDrawable.h \
     ContactListener.h \
-    Block.h
+    Block.h \
+    Bridge.h

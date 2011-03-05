@@ -20,6 +20,8 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
+   chdir("/home/meros/Documents/projects/TheGame/TheGame");
+
    sf::RenderWindow App(sf::VideoMode(800, 600, 32), "SFML Window");
 
    World world;

@@ -66,6 +66,7 @@ private:
 		STATE_MidAir,
 		STATE_MidJump,
 		STATE_Ground,
+                STATE_Rope,
 	} myState;
 
 	bool  myDirectionIsRight;
@@ -81,7 +82,10 @@ private:
 	bool  	myJumpBtnReleased;
 	float 	myJumpStartY;
 
-	Sprite myStandRightSprite;
+        Sprite myClimbRightSprite;
+        Sprite myClimbLeftSprite;
+
+        Sprite myStandRightSprite;
 	Sprite myBreakRightSprite;
 
 	Sprite myWalk1RightSprite;
@@ -105,11 +109,15 @@ private:
 	b2World&	myWorld;
 	
 	bool 		PrivDoJump(
-					const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Up);}
+                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Space);}
 	bool 		PrivDoRight(
 					const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Right);}
 	bool 		PrivDoLeft(
 					const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Left);}
+        bool 		PrivDoUp(
+                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Up);}
+        bool 		PrivDoDown(
+                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Down);}
 };
 
 #endif /* PLAYER_H_ */

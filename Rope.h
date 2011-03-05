@@ -45,7 +45,8 @@ protected:
 							const b2Manifold*	oldManifold);
 private:
 
-	std::vector<b2Body*>	myParts;
+        std::vector<b2Body*>	myParts;
+        std::vector<b2RevoluteJoint*>	myJoints;
 
 	Sprite		mySprite;
 	b2World&	myWorld;

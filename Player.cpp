@@ -26,6 +26,11 @@
 #define MID_AIR_SLOWDOWN_FACTOR 0.1
 #define MID_AIR_STOP_THRESHOLD 0.01
 
+#define ROPE_STEER_ACC 0.2
+
+#define ROPE_SLOWDOWN_FACTOR 0
+
+
 #include <iostream>
 
 using namespace std;
@@ -61,6 +66,10 @@ Player::Player(
 
         myStandLeftSprite.LoadTGA("data/apa_stand_left.tga");
 	myBreakLeftSprite.LoadTGA("data/mario_break_left.tga");
+
+        myClimbLeftSprite.LoadTGA("data/mario_jump_left.tga");
+        myClimbRightSprite.LoadTGA("data/mario_jump_left.tga");
+        myClimbRightSprite.Mirror();
 
 	myWalk1LeftSprite.LoadTGA("data/apa_walk_right_1.tga");
 	myWalk1LeftSprite.Mirror();
@@ -121,7 +130,7 @@ Player::Update(
 	myDY = myCollisionBody->GetLinearVelocity().y;
 	myDX = myCollisionBody->GetLinearVelocity().x;
 
-	if (!PrivDoJump(aInput) && myTouchedRopeBody && !myRopeJoint)
+        if (myState == STATE_MidAir && myTouchedRopeBody)
 	{		
 		b2RevoluteJointDef jointDef;
 		b2Vec2 anchor = (myTouchedRopeBody->GetPosition()+myCollisionBody->GetPosition());
@@ -131,23 +140,27 @@ Player::Update(
 
 
 		myRopeJoint = myWorld.CreateJoint(&jointDef);	
+
+                myState = STATE_Rope;
 	}
 
-	if (PrivDoJump(aInput) && myRopeJoint)
+        if (PrivDoJump(aInput) && myState == STATE_Rope)
 	{
 		myWorld.DestroyJoint(myRopeJoint);
 		myRopeJoint = NULL;
 		myJumpBtnReleased = false;
 		myState = STATE_MidJump;
 		myDY = JUMP_SPEED_BEG;
-		myJumpStartY = myCollisionBody->GetPosition().y;
+                myJumpStartY = myCollisionBody->GetPosition().y;
+
+                myState = STATE_MidJump;
 	}
 
 	myTouchedRopeBody = NULL;
 
 	if (myTouchingGroundContacts > 0)
 	{
-		if (myState == STATE_MidAir)
+                if (myState == STATE_MidAir)
 		{
 			myState = STATE_Ground;
 		}
@@ -169,7 +182,36 @@ Player::Update(
 
 	myIsBreaking = false;
 
-	if (myState == STATE_MidAir || myState == STATE_MidJump)
+        //Swinging
+        if (myState == STATE_Rope)
+        {
+                if (myDX > 0 && PrivDoRight(aInput))
+                {
+                        myDX += ROPE_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
+                }
+                else if (myDX < 0 && PrivDoLeft(aInput))
+                {
+                        myDX -= ROPE_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
+                }
+                else
+                {
+                        //Mid air slowing down
+                        myDX -= myDX*ROPE_SLOWDOWN_FACTOR;
+                }
+
+                if(PrivDoUp(aInput))
+                {
+                    myDY = 1;
+                    //FIXME: make him go up
+                }
+                else if (PrivDoDown(aInput))
+                {
+                    myDY = -1;
+                    //FIXME: make him go down
+                }
+        }
+
+        if (myState == STATE_MidAir || myState == STATE_MidJump)
 	{
 		//Mid air steering
 		if (PrivDoRight(aInput))
@@ -253,6 +295,8 @@ Player::Update(
 					+((myJumpStartY-myCollisionBody->GetPosition().y)/JUMP_MAX_LEN)*JUMP_SPEED_END;
 		}
 		break;
+        case STATE_Rope:
+                break;
 	default:
 		myDY = 0;
 		break;
@@ -288,7 +332,7 @@ Player::Draw(
 
 	//FIXME: matrix matrix matrix
 
-	Sprite* spriteToDraw = NULL;
+	Sprite* spriteToDraw = NULL;            
 
 	if (myState == STATE_Ground)
 	{
@@ -329,7 +373,18 @@ Player::Draw(
 			}
 		}
 	}
-	else
+        else if (myState == STATE_Rope)
+        {
+            if (myDirectionIsRight)
+                {
+                        spriteToDraw = &myClimbRightSprite;
+                }
+                else
+                {
+                        spriteToDraw = &myClimbLeftSprite;
+                }
+        }
+        else
 	{
             if (myDirectionIsRight)
 		{

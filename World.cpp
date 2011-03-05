@@ -156,44 +156,7 @@ World::World()
 			//Create bridge
 			if (*block == 'B')
 			{
-				//myRopes.push_back(new Rope(myCollisionWorld, (x+0.5f)*BLOCK_SIZE, y*BLOCK_SIZE));
-
-				b2Body* last = NULL;
-
-				for (int i = 0; i < 10; i++)
-				{
-					float BRIDGE_LENGTH = 0.1;
-					float BRIDGE_WIDTH = 0.1;
-
-					b2BodyDef bridgeDef;
-					bridgeDef.position = b2Vec2(x*BLOCK_SIZE+i*BRIDGE_WIDTH*2, y*BLOCK_SIZE);
-					//dropboxDef.angle = 0.2;
-
-					if (i != 0 && i != 9)
-					{
-						bridgeDef.type = b2_dynamicBody;
-					}
-
-					b2PolygonShape bridgeShape;
-
-					bridgeShape.SetAsBox(BRIDGE_WIDTH/2, BRIDGE_LENGTH/2);
-
-					b2Body* bridgeBody = myCollisionWorld.CreateBody(&bridgeDef);
-					bridgeBody->CreateFixture(&bridgeShape, 0.05f);
-
-					if (i != 0)
-					{
-						b2DistanceJointDef jointDef;
-						jointDef.Initialize(last, bridgeBody, last->GetPosition()+b2Vec2(BRIDGE_WIDTH/2, 0), bridgeBody->GetPosition()-b2Vec2(BRIDGE_WIDTH/2, 0));
-						jointDef.length = BRIDGE_WIDTH*1.1;
-
-						myCollisionWorld.CreateJoint(&jointDef);
-					}
-
-					//myParts.push_back(body2);
-
-					last = bridgeBody;
-				}
+                            myBridges.push_back(new Bridge(myCollisionWorld, x*BLOCK_SIZE, y*BLOCK_SIZE));
 			}
 
 
@@ -231,9 +194,9 @@ World::Update(
 
 	vector<Rope*>::iterator it;
 	for (it = myRopes.begin(); it != myRopes.end(); it++)
-		(*it)->Update();
+		(*it)->Update();      
 
-	myCollisionWorld.Step(1.0f/50.0f, 50, 50);
+        myCollisionWorld.Step(1.0f/50.0f, 500, 50);
 }
 
 void
