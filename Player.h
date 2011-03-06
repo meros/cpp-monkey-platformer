@@ -63,7 +63,7 @@ protected:
 private:
 	enum State
 	{
-		STATE_MidAir,
+		STATE_MidAir,                
 		STATE_MidJump,
 		STATE_Ground,
                 STATE_Rope,

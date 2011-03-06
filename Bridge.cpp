@@ -1,5 +1,7 @@
 #include "Bridge.h"
 
+#include <SFML/Graphics/Shape.hpp>
+
 Bridge::Bridge(
         b2World&	aWorld,
         float		aX,
@@ -18,6 +20,8 @@ Bridge::Bridge(
             b2BodyDef bridgeDef;
             bridgeDef.position = b2Vec2(aX+i*BRIDGE_WIDTH*2, aY
                                         );
+            bridgeDef.linearDamping = 10.0f;
+
             //dropboxDef.angle = 0.2;
 
             if (i != 0 && i != 9)
@@ -55,5 +59,13 @@ Bridge::Draw(
         float               aXTranslate,
         float               aYTranslate)
 {
+    std::vector<b2Body*>::iterator it;
+    for (it = myParts.begin(); it != myParts.end(); it++)
+    {
+        float x = ((*it)->GetPosition().x-aXTranslate)*aXScale;
+        float y = ((*it)->GetPosition().y-aYTranslate)*aYScale;
 
+        sf::Shape shape = sf::Shape::Circle(sf::Vector2f(x, y), 0.1*aXScale, sf::Color::Black);
+        aTarget.Draw(shape);
+    }
 }

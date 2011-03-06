@@ -205,7 +205,7 @@ World::Draw(
 {
 	myFrameCounter++;
 
-	float xscale = 120;
+        float xscale = 120;
 	float yscale = xscale;
 
 	float xtrans = myPlayer->GetPosition().myX-(400/xscale);
@@ -225,6 +225,11 @@ World::Draw(
 				(*it)->Draw(aTarget, xscale, yscale, xtrans, ytrans);
 	}
 
+        {
+                vector<Bridge*>::iterator it;
+                for (it = myBridges.begin(); it != myBridges.end(); it++)
+                                (*it)->Draw(aTarget, xscale, yscale, xtrans, ytrans);
+        }
 
 	debugdraw drawer;
 	drawer.SetFlags(b2DebugDraw::e_jointBit|b2DebugDraw::e_shapeBit);
