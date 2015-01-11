@@ -10,9 +10,7 @@
 
 class IPositionable {
 public:
-	virtual void 	SetPosition(
-						float 		aX,
-						float 		aY) = 0;
+	virtual void SetPosition(float aX, float aY) = 0;
 };
 
 #endif /* IPOSITIONABLE_H_ */

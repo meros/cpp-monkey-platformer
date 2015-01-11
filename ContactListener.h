@@ -12,60 +12,46 @@
 
 class Rope;
 
-class UserData
-{
+class UserData {
 public:
-				UserData()
-					: myType(Unknown)
-	{
+	UserData() :
+			myType(Unknown) {
 	}
 
-	virtual void BeginContact(
-						b2Contact* 	contact) {}
+	virtual void BeginContact(b2Contact* contact) {
+	}
 
-	virtual void EndContact(
-						b2Contact* 	contact) {}
+	virtual void EndContact(b2Contact* contact) {
+	}
 
-	virtual void PreSolve(
-						b2Contact* 			contact,
-						const b2Manifold* 	oldManifold) {}
+	virtual void PreSolve(b2Contact* contact, const b2Manifold* oldManifold) {
+	}
 
-	virtual void PostSolve(
-						b2Contact* contact,
-						const b2ContactImpulse* impulse) {};
+	virtual void PostSolve(b2Contact* contact,
+			const b2ContactImpulse* impulse) {
+	}
+	;
 
-	virtual void TouchedRope(
-						Rope*	aRope,
-						b2Body* aBpdy) {};
+	virtual void TouchedRope(Rope* aRope, b2Body* aBpdy) {
+	}
+	;
 
-	enum Type
-	{
-		Unknown,
-		Player,
+	enum Type {
+		Unknown, Player,
 	} myType;
 };
 
-class ContactListener
-	: public b2ContactListener {
+class ContactListener: public b2ContactListener {
 public:
-				ContactListener(
-					b2World&	aWorld);
-	virtual		~ContactListener();
+	ContactListener(b2World& aWorld);
+	virtual ~ContactListener();
 
-	void 		BeginContact(
-					b2Contact* 	contact);
+	void BeginContact(b2Contact* contact);
 
-	void 		EndContact(
-					b2Contact* 	contact);
+	void EndContact(b2Contact* contact);
 
-	void 		PreSolve(
-					b2Contact* 	contact,
-					const b2Manifold*
-								oldManifold);
-        void 		PostSolve(
-					b2Contact* 	contact,
-					const b2ContactImpulse*
-								impulse);
+	void PreSolve(b2Contact* contact, const b2Manifold* oldManifold);
+	void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse);
 };
 
 #endif /* CONTACTLISTENER_H_ */

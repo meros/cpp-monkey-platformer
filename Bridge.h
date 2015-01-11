@@ -10,20 +10,16 @@
 
 #include "IDrawable.h"
 
-class Bridge        
-    : public IDrawable
-{
+class Bridge: public IDrawable {
 public:
-    Bridge(
-            b2World&            aWorld,
-            float		aX,
-            float		aY);
+	Bridge(b2World& aWorld, float aX, float aY);
 
-    void Draw(sf::RenderTarget &aTarget, float aXScale, float aYScale, float aXTranslate, float aYTranslate);
+	void Draw(sf::RenderTarget &aTarget, float aXScale, float aYScale,
+			float aXTranslate, float aYTranslate);
 
 private:
-    b2World& myWorld;
-    std::vector<b2Body*>	myParts;
+	b2World& myWorld;
+	std::vector<b2Body*> myParts;
 };
 
 #endif // BRIDGE_H

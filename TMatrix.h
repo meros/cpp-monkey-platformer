@@ -12,14 +12,12 @@
 
 class TMatrix {
 public:
-				TMatrix();
-	virtual 	~TMatrix();
+	TMatrix();
+	virtual ~TMatrix();
 
-	void 		Rotate(
-					float 	aAngleRad);
+	void Rotate(float aAngleRad);
 
-	void 		Apply(
-					Point&	aPoint);
+	void Apply(Point& aPoint);
 private:
 	float myMatrix[2][2];
 };

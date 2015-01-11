@@ -5,7 +5,6 @@
  *      Author: meros
  */
 
-
 #ifndef IDRAWABLE_H_
 #define IDRAWABLE_H_
 
@@ -15,12 +14,8 @@
 
 class IDrawable {
 public:
-	virtual void		Draw(
-							sf::RenderTarget&	aTarget,
-							float				aXScale,
-							float				aYScale,
-							float 				aXTranslate,
-							float 				aYTranslate) = 0;
+	virtual void Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
+			float aXTranslate, float aYTranslate) = 0;
 };
 
 #endif /* IDRAWABLE_H_ */

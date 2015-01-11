@@ -11,30 +11,21 @@
 #include "IDrawable.h"
 #include "IPositionable.h"
 
-class DummyDrawable
-	: public IDrawable
-	, public IPositionable
-{
+class DummyDrawable: public IDrawable, public IPositionable {
 public:
 	DummyDrawable();
 	virtual ~DummyDrawable();
 
+	void Draw(sf::Window& aTarget, TMatrix* aWorld2Bitmap);
 
-	void				Draw(
-							sf::Window&	aTarget,
-							TMatrix* 	aWorld2Bitmap);
+	void SetPosition(float aX, float aY);
 
-	void 				SetPosition(
-							float 		aX,
-							float 		aY);
-
-	void 				SetRotation(
-							float 		aAngleRad);
+	void SetRotation(float aAngleRad);
 private:
-	float 	myX;
-	float 	myY;
+	float myX;
+	float myY;
 
-	TMatrix	myRotMatrix;
+	TMatrix myRotMatrix;
 };
 
 #endif /* DUMMYDRAWABLE_H_ */

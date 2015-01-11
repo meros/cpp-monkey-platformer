@@ -10,8 +10,7 @@
 
 class IRotateable {
 public:
-	virtual void 	SetRotation(
-						float aAngleRad) = 0;
+	virtual void SetRotation(float aAngleRad) = 0;
 };
 
 #endif /* IROTATEABLE_H_ */

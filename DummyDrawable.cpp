@@ -16,16 +16,11 @@ DummyDrawable::~DummyDrawable() {
 	// TODO Auto-generated destructor stub
 }
 
-void
-DummyDrawable::Draw(
-		sf::Window&	aTarget,
-		TMatrix* 	aWorld2Bitmap)
-{
+void DummyDrawable::Draw(sf::Window& aTarget, TMatrix* aWorld2Bitmap) {
 	Point p;
 
 	for (int xdiff = -10; xdiff <= 10; xdiff++)
-		for (int ydiff = -10; ydiff <= 10; ydiff++)
-		{
+		for (int ydiff = -10; ydiff <= 10; ydiff++) {
 			p.myX = xdiff;
 			p.myY = ydiff;
 
@@ -35,18 +30,11 @@ DummyDrawable::Draw(
 		}
 }
 
-void
-DummyDrawable::SetPosition(
-		float 		aX,
-		float 		aY)
-{
+void DummyDrawable::SetPosition(float aX, float aY) {
 	myX = aX;
 	myY = aY;
 }
 
-void
-DummyDrawable::SetRotation(
-		float		aRotation)
-{
+void DummyDrawable::SetRotation(float aRotation) {
 	myRotMatrix.Rotate(aRotation);
 }

@@ -10,40 +10,27 @@
 
 #include <SFML/Graphics.hpp>
 
-class Sprite{
+class Sprite {
 public:
-				Sprite();
-	virtual 	~Sprite();
+	Sprite();
+	virtual ~Sprite();
 
-	bool 		LoadTGA(
-					const char* aTgaFile);
+	bool LoadTGA(const char* aTgaFile);
 
-	void 		Mirror();
+	void Mirror();
 
-	void 		DrawGroundCenterRelative(
-					sf::RenderTarget&	aTarget,
-					float 				aXCenter,
-					float 				aYGround,
-					float 				aHeight,
-					float				aRotation);
+	void DrawGroundCenterRelative(sf::RenderTarget& aTarget, float aXCenter,
+			float aYGround, float aHeight, float aRotation);
 
-	void 		DrawTiling(
-					sf::RenderTarget&	aTarget,
-					float  				aXStart,
-					float  				aYStart,
-					float  				aXEnd,
-					float  				aYEnd);
+	void DrawTiling(sf::RenderTarget& aTarget, float aXStart, float aYStart,
+			float aXEnd, float aYEnd);
 
-	void 		DrawStretchRotation(
-						sf::RenderTarget&	aTarget,
-						float  				aXCenter,
-						float  				aYCenter,
-						float				aNonRotHeight,
-						float  				aAngleRad);
+	void DrawStretchRotation(sf::RenderTarget& aTarget, float aXCenter,
+			float aYCenter, float aNonRotHeight, float aAngleRad);
 
 private:
-	sf::Image 	myBMP;
-	sf::Sprite  mySprite;
+	sf::Texture myBMP;
+	sf::Sprite mySprite;
 };
 
 #endif /* Sprite_H_ */

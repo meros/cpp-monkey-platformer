@@ -21,71 +21,51 @@
 
 #include <SFML/Window.hpp>
 
-class Player
-: public IDrawable
-, public IPositionable
-, public UserData
-, public b2ContactFilter
-{
+class Player: public IDrawable,
+		public IPositionable,
+		public UserData,
+		public b2ContactFilter {
 public:
-				Player(
-						b2World& 				aWorld,
-						float					aXStartPos,
-						float					aYStartPos);
+	Player(b2World& aWorld, float aXStartPos, float aYStartPos);
 
-	virtual 	~Player();
+	virtual ~Player();
 
-	void 		Update(
-					const sf::Input&			aInput);
+	void Update();
 
-	void 		Draw(
-					sf::RenderTarget&	aTarget,
-					float				aXScale,
-					float				aYScale,
-					float 				aXTranslate,
-					float 				aYTranslate);
+	void Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
+			float aXTranslate, float aYTranslate);
 
-	void 		SetPosition(
-					float 		aX,
-					float 		aY);
+	void SetPosition(float aX, float aY);
 
-	Point		GetPosition();
+	Point GetPosition();
 
 protected:
-	void 		PostSolve(
-			b2Contact* contact,
-			const b2ContactImpulse* impulse);
+	void PostSolve(b2Contact* contact, const b2ContactImpulse* impulse);
 
-	void		TouchedRope(
-					Rope*		aRope, 
-					b2Body*		aBpdy);
+	void TouchedRope(Rope* aRope, b2Body* aBpdy);
 
 private:
-	enum State
-	{
-		STATE_MidAir,                
-		STATE_MidJump,
-		STATE_Ground,
-                STATE_Rope,
+	enum State {
+		STATE_MidAir, STATE_MidJump, STATE_Ground, STATE_Rope,
 	} myState;
 
-	bool  myDirectionIsRight;
-	bool  myIsBreaking;
-	int   myTouchingGroundContacts;
-	int   myTouchingRoofContacts;
+	bool myDirectionIsRight;
+	bool myIsBreaking;
+	int myTouchingGroundContacts;
+	int myTouchingRoofContacts;
 
 	float myDX;
 	float myDY;
 
-	b2Body*	myCollisionBody;
+	b2Body* myCollisionBody;
 
-	bool  	myJumpBtnReleased;
-	float 	myJumpStartY;
+	bool myJumpBtnReleased;
+	float myJumpStartY;
 
-        Sprite myClimbRightSprite;
-        Sprite myClimbLeftSprite;
+	Sprite myClimbRightSprite;
+	Sprite myClimbLeftSprite;
 
-        Sprite myStandRightSprite;
+	Sprite myStandRightSprite;
 	Sprite myBreakRightSprite;
 
 	Sprite myWalk1RightSprite;
@@ -103,21 +83,26 @@ private:
 
 	int myAnimationCounter;
 
-	b2Body*		myTouchedRopeBody;
-	b2Joint*	myRopeJoint;
+	b2Body* myTouchedRopeBody;
+	b2Joint* myRopeJoint;
 
-	b2World&	myWorld;
-	
-	bool 		PrivDoJump(
-                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Space);}
-	bool 		PrivDoRight(
-					const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Right);}
-	bool 		PrivDoLeft(
-					const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Left);}
-        bool 		PrivDoUp(
-                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Up);}
-        bool 		PrivDoDown(
-                                        const sf::Input&    aInput) {return aInput.IsKeyDown(sf::Key::Down);}
+	b2World& myWorld;
+
+	bool PrivDoJump() {
+		return sf::Keyboard::isKeyPressed(sf::Keyboard::Space);
+	}
+	bool PrivDoRight() {
+		return sf::Keyboard::isKeyPressed(sf::Keyboard::Right);
+	}
+	bool PrivDoLeft() {
+		return sf::Keyboard::isKeyPressed(sf::Keyboard::Left);
+	}
+	bool PrivDoUp() {
+		return sf::Keyboard::isKeyPressed(sf::Keyboard::Up);
+	}
+	bool PrivDoDown() {
+		return sf::Keyboard::isKeyPressed(sf::Keyboard::Down);
+	}
 };
 
 #endif /* PLAYER_H_ */

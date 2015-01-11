@@ -15,41 +15,28 @@
 #include <vector>
 
 //A non interactive game block
-class Rope
-	: public IDrawable
-	, public UserData
-{
+class Rope: public IDrawable, public UserData {
 public:
-	Rope(
-		b2World&			aWorld,
-		float 				aX,
-		float 				aY);
+	Rope(b2World& aWorld, float aX, float aY);
 
-	virtual 			~Rope();
+	virtual ~Rope();
 
-	void				Draw(
-		sf::RenderTarget&	aTarget,
-		float				aXScale,
-		float				aYScale,
-		float 				aXTranslate,
-		float 				aYTranslate);
+	void Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
+			float aXTranslate, float aYTranslate);
 
-	void				Update();
+	void Update();
 
 protected:
-	void 				BeginContact(
-							b2Contact* 			contact);
+	void BeginContact(b2Contact* contact);
 
-	void				PreSolve(
-							b2Contact*			contact, 
-							const b2Manifold*	oldManifold);
+	void PreSolve(b2Contact* contact, const b2Manifold* oldManifold);
 private:
 
-        std::vector<b2Body*>	myParts;
-        std::vector<b2RevoluteJoint*>	myJoints;
+	std::vector<b2Body*> myParts;
+	std::vector<b2RevoluteJoint*> myJoints;
 
-	Sprite		mySprite;
-	b2World&	myWorld;
+	Sprite mySprite;
+	b2World& myWorld;
 };
 
 #endif ROPE_H_

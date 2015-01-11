@@ -15,43 +15,28 @@
 #include <Box2D/Box2D.h>
 
 //A non interactive game block
-class Block
-	: public IDrawable
-	, public UserData
-{
+class Block: public IDrawable, public UserData {
 public:
-						Block(
-							b2World&			aWorld,
-							float 				aX,
-							float 				aY,
-							float 				aW,
-							float				aH,
-							bool 				aDynamic = false);
+	Block(b2World& aWorld, float aX, float aY, float aW, float aH,
+			bool aDynamic = false);
 
-	virtual 			~Block();
+	virtual ~Block();
 
-	void				Draw(
-							sf::RenderTarget&	aTarget,
-							float				aXScale,
-							float				aYScale,
-							float 				aXTranslate,
-							float 				aYTranslate);
+	void Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
+			float aXTranslate, float aYTranslate);
 
-	void 				SetCloud(
-							bool				aCloudFlag);
+	void SetCloud(bool aCloudFlag);
 
 protected:
-	void 				PreSolve(
-							b2Contact* 			contact,
-							const b2Manifold* 	oldManifold);
+	void PreSolve(b2Contact* contact, const b2Manifold* oldManifold);
 private:
-	float 	myX;
-	float 	myY;
-	float 	myW;
-	float 	myH;
+	float myX;
+	float myY;
+	float myW;
+	float myH;
 
-	b2Body*	myCollisionBody;
-	Sprite  mySprite;
+	b2Body* myCollisionBody;
+	Sprite mySprite;
 
 	bool myIsCloud;
 };

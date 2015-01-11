@@ -30,20 +30,15 @@
 
 #define ROPE_SLOWDOWN_FACTOR 0
 
-
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
-Player::Player(
-		b2World& 				aWorld,
-		float					aXStartPos,
-		float					aYStartPos)
-: myTouchedRopeBody(NULL)
-, myRopeJoint(NULL)
-, myWorld(aWorld)
-{
-	
+Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
+		myTouchedRopeBody(NULL), myRopeJoint(NULL), myWorld(aWorld), myIsBreaking(
+				false), myTouchingRoofContacts(0), myJumpStartY(0.0f) {
+
 	myType = UserData::Player;
 
 	myDX = 0;
@@ -56,56 +51,55 @@ Player::Player(
 	myState = STATE_MidAir;
 	myJumpBtnReleased = true;
 
-        myStandRightSprite.LoadTGA("data/apa_stand_right.tga");
+	myStandRightSprite.LoadTGA("data/apa_stand_right.tga");
 	myBreakRightSprite.LoadTGA("data/mario_break_right.tga");
 
 	myWalk1RightSprite.LoadTGA("data/apa_walk_right_1.tga");
 	myWalk2RightSprite.LoadTGA("data/apa_walk_right_2.tga");
 
-        myJumpRightSprite.LoadTGA("data/apa_jump_right.tga");
+	myJumpRightSprite.LoadTGA("data/apa_jump_right.tga");
 
-        myStandLeftSprite.LoadTGA("data/apa_stand_left.tga");
+	myStandLeftSprite.LoadTGA("data/apa_stand_left.tga");
 	myBreakLeftSprite.LoadTGA("data/mario_break_left.tga");
 
-        myClimbLeftSprite.LoadTGA("data/mario_jump_left.tga");
-        myClimbRightSprite.LoadTGA("data/mario_jump_left.tga");
-        myClimbRightSprite.Mirror();
+	myClimbLeftSprite.LoadTGA("data/mario_jump_left.tga");
+	myClimbRightSprite.LoadTGA("data/mario_jump_left.tga");
+	myClimbRightSprite.Mirror();
 
 	myWalk1LeftSprite.LoadTGA("data/apa_walk_right_1.tga");
 	myWalk1LeftSprite.Mirror();
 	myWalk2LeftSprite.LoadTGA("data/apa_walk_right_2.tga");
 	myWalk2LeftSprite.Mirror();
 
-        myJumpLeftSprite.LoadTGA("data/apa_jump_left.tga");
+	myJumpLeftSprite.LoadTGA("data/apa_jump_left.tga");
 
 	// Set up collision box
 	b2BodyDef dropboxDef;
 
 	dropboxDef.type = b2_dynamicBody;
-	dropboxDef.position = b2Vec2(aXStartPos,aYStartPos);
+	dropboxDef.position = b2Vec2(aXStartPos, aYStartPos);
 
 	b2PolygonShape dropboxShape;
 
 	float roundof = 0.02;
 
 	b2Vec2 verts[8];
-//	verts[0] = b2Vec2(-COLLISION_WIDTH/2, -COLLISION_HEIGHT/2);
+	//	verts[0] = b2Vec2(-COLLISION_WIDTH/2, -COLLISION_HEIGHT/2);
 	//verts[1] = b2Vec2(COLLISION_WIDTH/2, -COLLISION_HEIGHT/2);
-	verts[0] = b2Vec2(-COLLISION_WIDTH/2, -COLLISION_HEIGHT/2+roundof);
-	verts[1] = b2Vec2(-COLLISION_WIDTH/2+roundof, -COLLISION_HEIGHT/2);
+	verts[0] = b2Vec2(-COLLISION_WIDTH / 2, -COLLISION_HEIGHT / 2 + roundof);
+	verts[1] = b2Vec2(-COLLISION_WIDTH / 2 + roundof, -COLLISION_HEIGHT / 2);
 
-	verts[2] = b2Vec2(COLLISION_WIDTH/2-roundof, -COLLISION_HEIGHT/2);
-	verts[3] = b2Vec2(COLLISION_WIDTH/2, -COLLISION_HEIGHT/2+roundof);
+	verts[2] = b2Vec2(COLLISION_WIDTH / 2 - roundof, -COLLISION_HEIGHT / 2);
+	verts[3] = b2Vec2(COLLISION_WIDTH / 2, -COLLISION_HEIGHT / 2 + roundof);
 
-	verts[4] = b2Vec2(COLLISION_WIDTH/2, COLLISION_HEIGHT/2-roundof);
-	verts[5] = b2Vec2(COLLISION_WIDTH/2-roundof, COLLISION_HEIGHT/2);
+	verts[4] = b2Vec2(COLLISION_WIDTH / 2, COLLISION_HEIGHT / 2 - roundof);
+	verts[5] = b2Vec2(COLLISION_WIDTH / 2 - roundof, COLLISION_HEIGHT / 2);
 
-	verts[6] = b2Vec2(-COLLISION_WIDTH/2+roundof, COLLISION_HEIGHT/2);
-	verts[7] = b2Vec2(-COLLISION_WIDTH/2, COLLISION_HEIGHT/2-roundof);
+	verts[6] = b2Vec2(-COLLISION_WIDTH / 2 + roundof, COLLISION_HEIGHT / 2);
+	verts[7] = b2Vec2(-COLLISION_WIDTH / 2, COLLISION_HEIGHT / 2 - roundof);
 
 	dropboxShape.Set(verts, 8);
 	//dropboxShape.SetAsBox(COLLISION_WIDTH/2, COLLISION_HEIGHT/2);
-
 
 	myCollisionBody = aWorld.CreateBody(&dropboxDef);
 	myCollisionBody->SetFixedRotation(true);
@@ -116,118 +110,91 @@ Player::Player(
 	fixtureDef.density = 0.1f;
 	fixtureDef.friction = 0.4f;
 
-	myCollisionBody->CreateFixture(&fixtureDef)->SetUserData((UserData*)this);
+	myCollisionBody->CreateFixture(&fixtureDef)->SetUserData((UserData*) this);
 }
 
 Player::~Player() {
 	// TODO Auto-generated destructor stub
 }
 
-void
-Player::Update(
-		const sf::Input& aInput)
-{
+void Player::Update() {
 	myDY = myCollisionBody->GetLinearVelocity().y;
 	myDX = myCollisionBody->GetLinearVelocity().x;
 
-        if (myState == STATE_MidAir && myTouchedRopeBody)
-	{		
+	if (myState == STATE_MidAir && myTouchedRopeBody) {
 		b2RevoluteJointDef jointDef;
-		b2Vec2 anchor = (myTouchedRopeBody->GetPosition()+myCollisionBody->GetPosition());
-		anchor*=0.5;
+		b2Vec2 anchor = (myTouchedRopeBody->GetPosition()
+				+ myCollisionBody->GetPosition());
+		anchor *= 0.5;
 		jointDef.Initialize(myTouchedRopeBody, myCollisionBody, anchor);
 		jointDef.collideConnected = false;
 
+		myRopeJoint = myWorld.CreateJoint(&jointDef);
 
-		myRopeJoint = myWorld.CreateJoint(&jointDef);	
-
-                myState = STATE_Rope;
+		myState = STATE_Rope;
 	}
 
-        if (PrivDoJump(aInput) && myState == STATE_Rope)
-	{
+	if (PrivDoJump() && myState == STATE_Rope) {
 		myWorld.DestroyJoint(myRopeJoint);
 		myRopeJoint = NULL;
 		myJumpBtnReleased = false;
 		myState = STATE_MidJump;
 		myDY = JUMP_SPEED_BEG;
-                myJumpStartY = myCollisionBody->GetPosition().y;
+		myJumpStartY = myCollisionBody->GetPosition().y;
 
-                myState = STATE_MidJump;
+		myState = STATE_MidJump;
 	}
 
 	myTouchedRopeBody = NULL;
 
-	if (myTouchingGroundContacts > 0)
-	{
-                if (myState == STATE_MidAir)
-		{
+	if (myTouchingGroundContacts > 0) {
+		if (myState == STATE_MidAir) {
 			myState = STATE_Ground;
 		}
-	}
-	else
-	{
-		if (myDY > 0.1 && myState == STATE_Ground)
-		{
+	} else {
+		if (myDY > 0.1 && myState == STATE_Ground) {
 			myState = STATE_MidAir;
 		}
 	}
 
 	myCollisionBody->SetAwake(true);
 
-	if (!PrivDoJump(aInput))
-	{
+	if (!PrivDoJump()) {
 		myJumpBtnReleased = true;
 	}
 
 	myIsBreaking = false;
 
-        //Swinging
-        if (myState == STATE_Rope)
-        {
-                if (myDX > 0 && PrivDoRight(aInput))
-                {
-                        myDX += ROPE_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
-                }
-                else if (myDX < 0 && PrivDoLeft(aInput))
-                {
-                        myDX -= ROPE_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
-                }
-                else
-                {
-                        //Mid air slowing down
-                        myDX -= myDX*ROPE_SLOWDOWN_FACTOR;
-                }
-
-                if(PrivDoUp(aInput))
-                {
-                    myDY = 1;
-                    //FIXME: make him go up
-                }
-                else if (PrivDoDown(aInput))
-                {
-                    myDY = -1;
-                    //FIXME: make him go down
-                }
-        }
-
-        if (myState == STATE_MidAir || myState == STATE_MidJump)
-	{
-		//Mid air steering
-		if (PrivDoRight(aInput))
-		{
-			myDX += MID_AIR_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
-		}
-		else if (PrivDoLeft(aInput))
-		{
-			myDX -= MID_AIR_STEER_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
-		}
-		else
-		{
+	//Swinging
+	if (myState == STATE_Rope) {
+		if (myDX > 0 && PrivDoRight()) {
+			myDX += ROPE_STEER_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
+		} else if (myDX < 0 && PrivDoLeft()) {
+			myDX -= ROPE_STEER_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
+		} else {
 			//Mid air slowing down
-			myDX -= myDX*MID_AIR_SLOWDOWN_FACTOR;
-			if (abs(myDX) < MID_AIR_STOP_THRESHOLD)
-			{
+			myDX -= myDX * ROPE_SLOWDOWN_FACTOR;
+		}
+
+		if (PrivDoUp()) {
+			myDY = 1;
+			//FIXME: make him go up
+		} else if (PrivDoDown()) {
+			myDY = -1;
+			//FIXME: make him go down
+		}
+	}
+
+	if (myState == STATE_MidAir || myState == STATE_MidJump) {
+		//Mid air steering
+		if (PrivDoRight()) {
+			myDX += MID_AIR_STEER_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
+		} else if (PrivDoLeft()) {
+			myDX -= MID_AIR_STEER_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
+		} else {
+			//Mid air slowing down
+			myDX -= myDX * MID_AIR_SLOWDOWN_FACTOR;
+			if (abs(myDX) < MID_AIR_STOP_THRESHOLD) {
 				myDX = 0;
 			}
 		}
@@ -237,188 +204,135 @@ Player::Update(
 	if (myDY > MAXFALLSPEED)
 		myDY = MAXFALLSPEED;
 
-	switch(myState)
-	{
-	case STATE_MidAir:
-	{
+	switch (myState) {
+	case STATE_MidAir: {
 		break;
 	}
 	case STATE_Ground:
 		//Begin jump?
-		if (PrivDoJump(aInput) && myJumpBtnReleased)
-		{
+		if (PrivDoJump() && myJumpBtnReleased) {
 			myJumpBtnReleased = false;
 			myState = STATE_MidJump;
 			myDY = JUMP_SPEED_BEG;
 			myJumpStartY = myCollisionBody->GetPosition().y;
-		}
-		else
-		{
+		} else {
 			//Normal running
-			if (PrivDoRight(aInput))
-			{
-				if (myDX < -0.1)
-				{
+			if (PrivDoRight()) {
+				if (myDX < -0.1) {
 					myIsBreaking = true;
-					myDX -= myDX*RUN_BREAK_FACTOR;
-				}
-				else
-					myDX += RUN_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
-			}
-			else if (PrivDoLeft(aInput))
-			{
-				if (myDX > 0.1)
-				{
+					myDX -= myDX * RUN_BREAK_FACTOR;
+				} else
+					myDX += RUN_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
+			} else if (PrivDoLeft()) {
+				if (myDX > 0.1) {
 					myIsBreaking = true;
-					myDX -= myDX*RUN_BREAK_FACTOR;
-				}
-				else
-					myDX -= RUN_ACC*(1-(abs(myDX)/MAX_RUN_SPEED));
+					myDX -= myDX * RUN_BREAK_FACTOR;
+				} else
+					myDX -= RUN_ACC * (1 - (abs(myDX) / MAX_RUN_SPEED));
 			}
 
-			if (abs(myDX) < RUN_STOP_THRESHOLD)
-			{
+			if (abs(myDX) < RUN_STOP_THRESHOLD) {
 				myDX = 0;
 			}
 		}
 		break;
 	case STATE_MidJump:
 
-		if (!PrivDoJump(aInput) || (myJumpStartY-myCollisionBody->GetPosition().y) > JUMP_MAX_LEN || myTouchingRoofContacts != 0)
-		{
+		if (!PrivDoJump()
+				|| (myJumpStartY - myCollisionBody->GetPosition().y)
+						> JUMP_MAX_LEN || myTouchingRoofContacts != 0) {
 			myState = STATE_MidAir;
 			myDY = JUMP_SPEED_STOP;
-		}
-		else
-		{
-			myDY = ((JUMP_MAX_LEN-(myJumpStartY-myCollisionBody->GetPosition().y))/JUMP_MAX_LEN)*JUMP_SPEED_BEG
-					+((myJumpStartY-myCollisionBody->GetPosition().y)/JUMP_MAX_LEN)*JUMP_SPEED_END;
+		} else {
+			myDY = ((JUMP_MAX_LEN
+					- (myJumpStartY - myCollisionBody->GetPosition().y))
+					/ JUMP_MAX_LEN) * JUMP_SPEED_BEG
+					+ ((myJumpStartY - myCollisionBody->GetPosition().y)
+							/ JUMP_MAX_LEN) * JUMP_SPEED_END;
 		}
 		break;
-        case STATE_Rope:
-                break;
+	case STATE_Rope:
+		break;
 	default:
 		myDY = 0;
 		break;
 	}
 
-
-	if (!aInput.IsKeyDown(sf::Key::A))
+	if (!sf::Keyboard::isKeyPressed(sf::Keyboard::A))
 		myCollisionBody->SetLinearVelocity(b2Vec2(myDX, myDY));
 
 	if (myDX > 0.1)
 		myDirectionIsRight = true;
 
 	if (myDX < -0.1)
-			myDirectionIsRight = false;
+		myDirectionIsRight = false;
 
 	myTouchingGroundContacts = 0;
 	myTouchingRoofContacts = 0;
 }
 
-void
-Player::Draw(
-		sf::RenderTarget&	aTarget,
-		float				aXScale,
-		float				aYScale,
-		float 				aXTranslate,
-		float 				aYTranslate)
-{
+void Player::Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
+		float aXTranslate, float aYTranslate) {
 	myAnimationCounter++;
 
-	float x = (myCollisionBody->GetPosition().x-aXTranslate)*aXScale;
-	float y = (myCollisionBody->GetPosition().y-aYTranslate)*aYScale;
-
+	float x = (myCollisionBody->GetPosition().x - aXTranslate) * aXScale;
+	float y = (myCollisionBody->GetPosition().y - aYTranslate) * aYScale;
 
 	//FIXME: matrix matrix matrix
 
-	Sprite* spriteToDraw = NULL;            
+	Sprite* spriteToDraw = NULL;
 
-	if (myState == STATE_Ground)
-	{
-		if (myDirectionIsRight)
-		{
-			if (myIsBreaking)
-			{
+	if (myState == STATE_Ground) {
+		if (myDirectionIsRight) {
+			if (myIsBreaking) {
 				spriteToDraw = &myBreakRightSprite;
-			}
-			else if (myDX < RUN_STOP_THRESHOLD)
-			{
+			} else if (myDX < RUN_STOP_THRESHOLD) {
 				spriteToDraw = &myStandRightSprite;
-			}
-			else
-			{
-				if ((myAnimationCounter/4) % 2 == 0)
+			} else {
+				if ((myAnimationCounter / 4) % 2 == 0)
 					spriteToDraw = &myWalk1RightSprite;
 				else
 					spriteToDraw = &myWalk2RightSprite;
 			}
-		}
-		else
-		{
-			if (myIsBreaking)
-			{
+		} else {
+			if (myIsBreaking) {
 				spriteToDraw = &myBreakLeftSprite;
-			}
-			else if (-myDX < RUN_STOP_THRESHOLD)
-			{
+			} else if (-myDX < RUN_STOP_THRESHOLD) {
 				spriteToDraw = &myStandLeftSprite;
-			}
-			else
-			{
-				if ((myAnimationCounter/4) % 2 == 0)
+			} else {
+				if ((myAnimationCounter / 4) % 2 == 0)
 					spriteToDraw = &myWalk1LeftSprite;
 				else
 					spriteToDraw = &myWalk2LeftSprite;
 			}
 		}
-	}
-        else if (myState == STATE_Rope)
-        {
-            if (myDirectionIsRight)
-                {
-                        spriteToDraw = &myClimbRightSprite;
-                }
-                else
-                {
-                        spriteToDraw = &myClimbLeftSprite;
-                }
-        }
-        else
-	{
-            if (myDirectionIsRight)
-		{
-			spriteToDraw = &myJumpRightSprite;
+	} else if (myState == STATE_Rope) {
+		if (myDirectionIsRight) {
+			spriteToDraw = &myClimbRightSprite;
+		} else {
+			spriteToDraw = &myClimbLeftSprite;
 		}
-		else
-		{
+	} else {
+		if (myDirectionIsRight) {
+			spriteToDraw = &myJumpRightSprite;
+		} else {
 			spriteToDraw = &myJumpLeftSprite;
 		}
 	}
 
-	if (spriteToDraw)
-	{
-		spriteToDraw->DrawGroundCenterRelative(
-				aTarget,
-				x,
-				y+(COLLISION_HEIGHT*aYScale/2.0f),
-				COLLISION_HEIGHT*aYScale*2,
-				myCollisionBody->GetTransform().GetAngle());
+	if (spriteToDraw) {
+		spriteToDraw->DrawGroundCenterRelative(aTarget, x,
+				y + (COLLISION_HEIGHT * aYScale / 2.0f),
+				COLLISION_HEIGHT * aYScale * 2,
+				myCollisionBody->GetTransform().q.GetAngle());
 	}
 }
 
-void
-Player::SetPosition(
-		float 		aX,
-		float 		aY)
-{
+void Player::SetPosition(float aX, float aY) {
 
 }
 
-
-Point
-Player::GetPosition()
-{
+Point Player::GetPosition() {
 	Point res;
 	res.myX = myCollisionBody->GetPosition().x;
 	res.myY = myCollisionBody->GetPosition().y;
@@ -426,34 +340,27 @@ Player::GetPosition()
 	return res;
 }
 
-
-void
-Player::PostSolve(
-			b2Contact* contact,
-			const b2ContactImpulse* impulse)
-{
+void Player::PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) {
 	b2WorldManifold manifold;
 	contact->GetWorldManifold(&manifold);
 
 	cout << endl;
 
-	if (manifold.points[0].y >= myCollisionBody->GetPosition().y+(COLLISION_HEIGHT/2)*0.9 &&
-		abs(manifold.points[0].x-myCollisionBody->GetPosition().x) <= (COLLISION_HEIGHT/2)*0.95)
-	{
+	if (manifold.points[0].y
+			>= myCollisionBody->GetPosition().y + (COLLISION_HEIGHT / 2) * 0.9
+			&& abs(manifold.points[0].x - myCollisionBody->GetPosition().x)
+					<= (COLLISION_HEIGHT / 2) * 0.95) {
 		cout << "ground!" << endl;
-		myTouchingGroundContacts ++;		
+		myTouchingGroundContacts++;
 	}
-	if (manifold.points[0].y <= myCollisionBody->GetPosition().y+-(COLLISION_HEIGHT/2)*0.9 &&
-		abs(manifold.points[0].x-myCollisionBody->GetPosition().x) <= (COLLISION_HEIGHT/2)*0.95)
-	{
-		myTouchingRoofContacts ++;
+	if (manifold.points[0].y
+			<= myCollisionBody->GetPosition().y + -(COLLISION_HEIGHT / 2) * 0.9
+			&& abs(manifold.points[0].x - myCollisionBody->GetPosition().x)
+					<= (COLLISION_HEIGHT / 2) * 0.95) {
+		myTouchingRoofContacts++;
 	}
 }
 
-void 
-Player::TouchedRope( 
-	Rope*		aRope, 
-	b2Body*		aBody)
-{
+void Player::TouchedRope(Rope* aRope, b2Body* aBody) {
 	myTouchedRopeBody = aBody;
 }

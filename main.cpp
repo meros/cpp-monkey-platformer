@@ -8,42 +8,38 @@
 
 using namespace std;
 
+volatile int speed_counter = 0;
 
- volatile int speed_counter = 0;
+void increment_speed_counter() {
+	speed_counter++;
+}
 
-  void increment_speed_counter()
-  {
-	 speed_counter++;
-  }
+int main(int argc, char** argv) {
+	sf::RenderWindow app(sf::VideoMode(800, 600, 32), "SFML Window");
 
+	World world;
 
+	cout << "hej" << endl;
 
-int main(int argc, char** argv)
-{
-   chdir("/home/meros/Documents/projects/TheGame/TheGame");
+	app.setVerticalSyncEnabled(true);
+	app.setFramerateLimit(50);
 
-   sf::RenderWindow App(sf::VideoMode(800, 600, 32), "SFML Window");
+	while (true) {
+		sf::Event event;
+		bool gotEvent = app.pollEvent(event);
 
-   World world;
+		if (gotEvent
+				&& ((event.type == sf::Event::KeyPressed)
+						&& (event.key.code == sf::Keyboard::Escape))) {
+			break;
+		}
 
-   cout <<"hej" << endl;
+		world.Update();
 
-   App.UseVerticalSync(true);
-   App.SetFramerateLimit(50);
+		app.clear(sf::Color::White);
+		world.Draw(app);
+		app.display();
+	}
 
-
-   while (!App.GetInput().IsKeyDown(sf::Key::Escape))
-   {
-	   sf::Event event;
-	   App.GetEvent(event);
-
-	   world.Update(App.GetInput());
-
-	   App.Clear(sf::Color::White);
-	   world.Draw(App);
-
-	   App.Display();
-   }
-
-   return 0;
+	return 0;
 }
