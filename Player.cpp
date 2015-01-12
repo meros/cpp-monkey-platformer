@@ -6,6 +6,7 @@
  */
 
 #include "Player.h"
+#include "Rope.h"
 
 #define MAXFALLSPEED 5
 #define JUMP_SPEED_BEG -4
@@ -36,8 +37,9 @@
 using namespace std;
 
 Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
-		myTouchedRopeBody(NULL), myRopeJoint(NULL), myWorld(aWorld), myIsBreaking(
-				false), myTouchingRoofContacts(0), myJumpStartY(0.0f) {
+		myNewlyTouchedRopeBody(NULL), myNewlyTouchedRope(NULL), myRopeJoint(
+				NULL), myRope(NULL), myWorld(aWorld), myIsBreaking(false), myTouchingRoofContacts(
+				0), myJumpStartY(0.0f) {
 
 	myType = UserData::Player;
 
@@ -121,14 +123,15 @@ void Player::Update() {
 	myDY = myCollisionBody->GetLinearVelocity().y;
 	myDX = myCollisionBody->GetLinearVelocity().x;
 
-	if (myState == STATE_MidAir && myTouchedRopeBody) {
+	if (myState == STATE_MidAir && myNewlyTouchedRopeBody) {
 		b2RevoluteJointDef jointDef;
-		b2Vec2 anchor = (myTouchedRopeBody->GetPosition()
+		b2Vec2 anchor = (myNewlyTouchedRopeBody->GetPosition()
 				+ myCollisionBody->GetPosition());
 		anchor *= 0.5;
-		jointDef.Initialize(myTouchedRopeBody, myCollisionBody, anchor);
+		jointDef.Initialize(myNewlyTouchedRopeBody, myCollisionBody, anchor);
 		jointDef.collideConnected = false;
 
+		myRope = myNewlyTouchedRope;
 		myRopeJoint = myWorld.CreateJoint(&jointDef);
 
 		myState = STATE_Rope;
@@ -145,7 +148,7 @@ void Player::Update() {
 		myState = STATE_MidJump;
 	}
 
-	myTouchedRopeBody = NULL;
+	myNewlyTouchedRopeBody = NULL;
 
 	if (myTouchingGroundContacts > 0) {
 		if (myState == STATE_MidAir) {
@@ -178,10 +181,10 @@ void Player::Update() {
 
 		if (PrivDoUp()) {
 			myDY = 1;
-			//FIXME: make him go up
+			myRope->MoveJoint(myRopeJoint, 1);
 		} else if (PrivDoDown()) {
 			myDY = -1;
-			//FIXME: make him go down
+			myRope->MoveJoint(myRopeJoint, -1);
 		}
 	}
 
@@ -362,5 +365,6 @@ void Player::PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) {
 }
 
 void Player::TouchedRope(Rope* aRope, b2Body* aBody) {
-	myTouchedRopeBody = aBody;
+	myNewlyTouchedRopeBody = aBody;
+	myNewlyTouchedRope = aRope;
 }

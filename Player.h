@@ -83,8 +83,11 @@ private:
 
 	int myAnimationCounter;
 
-	b2Body* myTouchedRopeBody;
+	b2Body* myNewlyTouchedRopeBody;
+	Rope* myNewlyTouchedRope;
+
 	b2Joint* myRopeJoint;
+	Rope* myRope;
 
 	b2World& myWorld;
 

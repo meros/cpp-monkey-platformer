@@ -48,10 +48,10 @@ void Sprite::DrawTiling(sf::RenderTarget& aTarget, float aXStart, float aYStart,
 	mySprite.setScale(factor, factor);
 
 	int numreps = floor(
-			0.5 + (aXEnd - aXStart) / mySprite.getTextureRect().width);
+			0.5 + (aXEnd - aXStart) / mySprite.getGlobalBounds().width);
 
 	int reps = 0;
-	for (float x = aXStart; true; x += mySprite.getTextureRect().width) {
+	for (float x = aXStart; true; x += mySprite.getGlobalBounds().width) {
 		//FIXME: uhm.. ugly
 		reps++;
 		if (reps > numreps)

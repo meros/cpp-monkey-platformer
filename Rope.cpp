@@ -97,6 +97,13 @@ void Rope::Update() {
 
 }
 
+void Rope::MoveJoint(b2Joint* joint, float aDeltaY) {
+	// TODO: disconnect joint and move it!
+
+	cout << "moving joint" << endl;
+}
+
+
 void Rope::PreSolve(b2Contact* contact, const b2Manifold* oldManifold) {
 	contact->SetEnabled(false);
 }

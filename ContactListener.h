@@ -30,11 +30,9 @@ public:
 	virtual void PostSolve(b2Contact* contact,
 			const b2ContactImpulse* impulse) {
 	}
-	;
 
 	virtual void TouchedRope(Rope* aRope, b2Body* aBpdy) {
 	}
-	;
 
 	enum Type {
 		Unknown, Player,

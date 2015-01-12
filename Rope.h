@@ -26,6 +26,8 @@ public:
 
 	void Update();
 
+	void MoveJoint(b2Joint* joint, float aDeltaY);
+
 protected:
 	void BeginContact(b2Contact* contact);
 
