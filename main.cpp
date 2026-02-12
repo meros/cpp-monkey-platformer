@@ -10,6 +10,30 @@
 
 using namespace std;
 
+static const float DESIGN_WIDTH = 800.f;
+static const float DESIGN_HEIGHT = 600.f;
+
+static sf::View getLetterboxView(float windowWidth, float windowHeight) {
+	sf::View view(sf::FloatRect(0, 0, DESIGN_WIDTH, DESIGN_HEIGHT));
+
+	float windowRatio = windowWidth / windowHeight;
+	float viewRatio = DESIGN_WIDTH / DESIGN_HEIGHT;
+
+	float sizeX = 1.f, sizeY = 1.f;
+	float posX = 0.f, posY = 0.f;
+
+	if (windowRatio >= viewRatio) {
+		sizeX = viewRatio / windowRatio;
+		posX = (1.f - sizeX) / 2.f;
+	} else {
+		sizeY = windowRatio / viewRatio;
+		posY = (1.f - sizeY) / 2.f;
+	}
+
+	view.setViewport(sf::FloatRect(posX, posY, sizeX, sizeY));
+	return view;
+}
+
 static int runGame(const string& screenshotPath, int screenshotAfterFrames) {
 	sf::RenderWindow app(sf::VideoMode(800, 600, 32), "Monkey Platformer");
 
@@ -17,6 +41,9 @@ static int runGame(const string& screenshotPath, int screenshotAfterFrames) {
 
 	app.setVerticalSyncEnabled(true);
 	app.setFramerateLimit(50);
+
+	sf::View view = getLetterboxView(800, 600);
+	app.setView(view);
 
 	int frameCount = 0;
 
@@ -30,11 +57,21 @@ static int runGame(const string& screenshotPath, int screenshotAfterFrames) {
 					&& event.key.code == sf::Keyboard::Escape) {
 				app.close();
 			}
+			if (event.type == sf::Event::Resized) {
+				view = getLetterboxView(event.size.width, event.size.height);
+				app.setView(view);
+			}
 		}
 
 		world.Update();
 
-		app.clear(sf::Color::White);
+		app.clear(sf::Color::Black);
+		app.setView(view);
+
+		sf::RectangleShape bg(sf::Vector2f(DESIGN_WIDTH, DESIGN_HEIGHT));
+		bg.setFillColor(sf::Color(135, 206, 235));
+		app.draw(bg);
+
 		world.Draw(app);
 		app.display();
 
