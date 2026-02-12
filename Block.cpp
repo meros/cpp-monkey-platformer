@@ -7,8 +7,6 @@
 
 #include "Block.h"
 
-#include <iostream>
-using namespace std;
 
 Block::Block(b2World& aWorld, float aX, float aY, float aW, float aH,
 		bool aDynamic) {
@@ -32,8 +30,11 @@ Block::Block(b2World& aWorld, float aX, float aY, float aW, float aH,
 	dropboxShape.SetAsBox(aW / 2, aH / 2);
 
 	myCollisionBody = aWorld.CreateBody(&dropboxDef);
-	myCollisionBody->CreateFixture(&dropboxShape, 0.05f)->SetUserData(
-			(UserData*) this);
+	b2FixtureDef fixDef;
+	fixDef.shape = &dropboxShape;
+	fixDef.density = 0.05f;
+	fixDef.userData.pointer = reinterpret_cast<uintptr_t>(static_cast<UserData*>(this));
+	myCollisionBody->CreateFixture(&fixDef);
 
 	mySprite.LoadTGA("data/groundtile.tga");
 }
@@ -58,7 +59,8 @@ void Block::SetCloud(bool aCloudFlag) {
 void Block::PreSolve(b2Contact* contact, const b2Manifold* oldManifold) {
 	if (myIsCloud) {
 		b2Fixture* otherFix = contact->GetFixtureA();
-		if (contact->GetFixtureA()->GetUserData() == (UserData*) this) {
+		auto* udA = reinterpret_cast<UserData*>(contact->GetFixtureA()->GetUserData().pointer);
+		if (udA == static_cast<UserData*>(this)) {
 			otherFix = contact->GetFixtureB();
 		}
 

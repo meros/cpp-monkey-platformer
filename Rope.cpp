@@ -5,9 +5,6 @@
 
 #include "Rope.h"
 
-#include <iostream>
-
-using namespace std;
 
 Rope::Rope(b2World& aWorld, float aX, float aY) :
 		myWorld(aWorld) {
@@ -30,8 +27,11 @@ Rope::Rope(b2World& aWorld, float aX, float aY) :
 		dropboxShape2.SetAsBox(ROPE_WIDTH / 2, ROPE_LENGTH / 2);
 
 		b2Body* body2 = aWorld.CreateBody(&dropboxDef2);
-		body2->CreateFixture(&dropboxShape2, 0.05f)->SetUserData(
-				(UserData*) this);
+		b2FixtureDef fixDef;
+		fixDef.shape = &dropboxShape2;
+		fixDef.density = 0.05f;
+		fixDef.userData.pointer = reinterpret_cast<uintptr_t>(static_cast<UserData*>(this));
+		body2->CreateFixture(&fixDef);
 
 		if (i != 0) {
 			b2RevoluteJointDef jointDef;
@@ -74,22 +74,25 @@ void Rope::Draw(sf::RenderTarget& aTarget, float aXScale, float aYScale,
 }
 
 void Rope::BeginContact(b2Contact* contact) {
-	if (!contact->GetFixtureA()->GetUserData()
-			|| !contact->GetFixtureB()->GetUserData())
+	auto ptrA = contact->GetFixtureA()->GetUserData().pointer;
+	auto ptrB = contact->GetFixtureB()->GetUserData().pointer;
+
+	if (!ptrA || !ptrB)
 		return;
 
-	if (contact->GetFixtureA()->GetUserData() == (UserData*) this
-			&& contact->GetFixtureB()->GetUserData() == (UserData*) this)
+	auto* udA = reinterpret_cast<UserData*>(ptrA);
+	auto* udB = reinterpret_cast<UserData*>(ptrB);
+
+	if (udA == static_cast<UserData*>(this)
+			&& udB == static_cast<UserData*>(this))
 		return;
 
-	if (contact->GetFixtureA()->GetUserData() == (UserData*) this) {
-		((UserData*) contact->GetFixtureB()->GetUserData())->TouchedRope(this,
-				contact->GetFixtureA()->GetBody());
+	if (udA == static_cast<UserData*>(this)) {
+		udB->TouchedRope(this, contact->GetFixtureA()->GetBody());
 	}
 
-	if (contact->GetFixtureB()->GetUserData() == (UserData*) this) {
-		((UserData*) contact->GetFixtureA()->GetUserData())->TouchedRope(this,
-				contact->GetFixtureB()->GetBody());
+	if (udB == static_cast<UserData*>(this)) {
+		udA->TouchedRope(this, contact->GetFixtureB()->GetBody());
 	}
 }
 
@@ -100,7 +103,6 @@ void Rope::Update() {
 void Rope::MoveJoint(b2Joint* joint, float aDeltaY) {
 	// TODO: disconnect joint and move it!
 
-	cout << "moving joint" << endl;
 }
 
 

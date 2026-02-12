@@ -11,7 +11,7 @@
 #include "Sprite.h"
 
 #include <SFML/Graphics.hpp>
-#include <Box2D/Box2D.h>
+#include <box2d/box2d.h>
 #include <vector>
 
 //A non interactive game block
@@ -41,4 +41,4 @@ private:
 	b2World& myWorld;
 };
 
-#endif ROPE_H_
+#endif // ROPE_H_

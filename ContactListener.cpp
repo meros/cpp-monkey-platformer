@@ -7,21 +7,21 @@
 
 #include "ContactListener.h"
 
-#include <iostream>
-
-using namespace std;
 
 ContactListener::ContactListener(b2World& aWorld) {
 	aWorld.SetContactListener(this);
 }
 
 ContactListener::~ContactListener() {
-	// TODO Auto-generated destructor stub
+}
+
+static UserData* GetUserDataPtr(b2Fixture* fixture) {
+	return reinterpret_cast<UserData*>(fixture->GetUserData().pointer);
 }
 
 void ContactListener::BeginContact(b2Contact* contact) {
-	UserData* callbackA = (UserData*) (contact->GetFixtureA()->GetUserData());
-	UserData* callbackB = (UserData*) (contact->GetFixtureB()->GetUserData());
+	UserData* callbackA = GetUserDataPtr(contact->GetFixtureA());
+	UserData* callbackB = GetUserDataPtr(contact->GetFixtureB());
 
 	if (callbackA) {
 		callbackA->BeginContact(contact);
@@ -33,8 +33,8 @@ void ContactListener::BeginContact(b2Contact* contact) {
 }
 
 void ContactListener::EndContact(b2Contact* contact) {
-	UserData* callbackA = (UserData*) (contact->GetFixtureA()->GetUserData());
-	UserData* callbackB = (UserData*) (contact->GetFixtureB()->GetUserData());
+	UserData* callbackA = GetUserDataPtr(contact->GetFixtureA());
+	UserData* callbackB = GetUserDataPtr(contact->GetFixtureB());
 
 	if (callbackA) {
 		callbackA->EndContact(contact);
@@ -47,8 +47,8 @@ void ContactListener::EndContact(b2Contact* contact) {
 
 void ContactListener::PreSolve(b2Contact* contact,
 		const b2Manifold* oldManifold) {
-	UserData* callbackA = (UserData*) (contact->GetFixtureA()->GetUserData());
-	UserData* callbackB = (UserData*) (contact->GetFixtureB()->GetUserData());
+	UserData* callbackA = GetUserDataPtr(contact->GetFixtureA());
+	UserData* callbackB = GetUserDataPtr(contact->GetFixtureB());
 
 	if (callbackA) {
 		callbackA->PreSolve(contact, oldManifold);
@@ -61,8 +61,8 @@ void ContactListener::PreSolve(b2Contact* contact,
 
 void ContactListener::PostSolve(b2Contact* contact,
 		const b2ContactImpulse* impulse) {
-	UserData* callbackA = (UserData*) (contact->GetFixtureA()->GetUserData());
-	UserData* callbackB = (UserData*) (contact->GetFixtureB()->GetUserData());
+	UserData* callbackA = GetUserDataPtr(contact->GetFixtureA());
+	UserData* callbackB = GetUserDataPtr(contact->GetFixtureB());
 
 	if (callbackA) {
 		callbackA->PostSolve(contact, impulse);

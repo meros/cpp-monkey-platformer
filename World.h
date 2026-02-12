@@ -14,7 +14,7 @@
 #include "Player.h"
 
 #include <vector>
-#include <Box2D/Box2D.h>
+#include <box2d/box2d.h>
 
 class World {
 public:
@@ -23,6 +23,9 @@ public:
 
 	void Update();
 	void Draw(sf::RenderTarget& aTarget);
+
+	Point GetPlayerPosition() const;
+
 private:
 	b2World myCollisionWorld;
 

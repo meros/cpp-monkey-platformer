@@ -8,7 +8,7 @@
 #ifndef CONTACTLISTENER_H_
 #define CONTACTLISTENER_H_
 
-#include <Box2D/Box2D.h>
+#include <box2d/box2d.h>
 
 class Rope;
 

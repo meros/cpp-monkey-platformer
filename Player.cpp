@@ -31,10 +31,7 @@
 
 #define ROPE_SLOWDOWN_FACTOR 0
 
-#include <iostream>
 #include <cmath>
-
-using namespace std;
 
 Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
 		myNewlyTouchedRopeBody(NULL), myNewlyTouchedRope(NULL), myRopeJoint(
@@ -54,7 +51,7 @@ Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
 	myJumpBtnReleased = true;
 
 	myStandRightSprite.LoadTGA("data/apa_stand_right.tga");
-	myBreakRightSprite.LoadTGA("data/mario_break_right.tga");
+	myBreakRightSprite.LoadTGA("data/apa_stand_right.tga");
 
 	myWalk1RightSprite.LoadTGA("data/apa_walk_right_1.tga");
 	myWalk2RightSprite.LoadTGA("data/apa_walk_right_2.tga");
@@ -62,16 +59,13 @@ Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
 	myJumpRightSprite.LoadTGA("data/apa_jump_right.tga");
 
 	myStandLeftSprite.LoadTGA("data/apa_stand_left.tga");
-	myBreakLeftSprite.LoadTGA("data/mario_break_left.tga");
+	myBreakLeftSprite.LoadTGA("data/apa_stand_left.tga");
 
-	myClimbLeftSprite.LoadTGA("data/mario_jump_left.tga");
-	myClimbRightSprite.LoadTGA("data/mario_jump_left.tga");
-	myClimbRightSprite.Mirror();
+	myClimbLeftSprite.LoadTGA("data/apa_jump_left.tga");
+	myClimbRightSprite.LoadTGA("data/apa_jump_right.tga");
 
-	myWalk1LeftSprite.LoadTGA("data/apa_walk_right_1.tga");
-	myWalk1LeftSprite.Mirror();
-	myWalk2LeftSprite.LoadTGA("data/apa_walk_right_2.tga");
-	myWalk2LeftSprite.Mirror();
+	myWalk1LeftSprite.LoadTGA("data/apa_walk_left_1.tga");
+	myWalk2LeftSprite.LoadTGA("data/apa_walk_left_2.tga");
 
 	myJumpLeftSprite.LoadTGA("data/apa_jump_left.tga");
 
@@ -112,7 +106,8 @@ Player::Player(b2World& aWorld, float aXStartPos, float aYStartPos) :
 	fixtureDef.density = 0.1f;
 	fixtureDef.friction = 0.4f;
 
-	myCollisionBody->CreateFixture(&fixtureDef)->SetUserData((UserData*) this);
+	fixtureDef.userData.pointer = reinterpret_cast<uintptr_t>(static_cast<UserData*>(this));
+	myCollisionBody->CreateFixture(&fixtureDef);
 }
 
 Player::~Player() {
@@ -347,13 +342,10 @@ void Player::PostSolve(b2Contact* contact, const b2ContactImpulse* impulse) {
 	b2WorldManifold manifold;
 	contact->GetWorldManifold(&manifold);
 
-	cout << endl;
-
 	if (manifold.points[0].y
 			>= myCollisionBody->GetPosition().y + (COLLISION_HEIGHT / 2) * 0.9
 			&& abs(manifold.points[0].x - myCollisionBody->GetPosition().x)
 					<= (COLLISION_HEIGHT / 2) * 0.95) {
-		cout << "ground!" << endl;
 		myTouchingGroundContacts++;
 	}
 	if (manifold.points[0].y

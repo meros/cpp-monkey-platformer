@@ -8,8 +8,6 @@
 #include "Sprite.h"
 
 #include <math.h>
-#include <iostream>
-using namespace std;
 
 Sprite::Sprite() {
 }
@@ -35,8 +33,8 @@ void Sprite::DrawGroundCenterRelative(sf::RenderTarget& aTarget, float aXCenter,
 
 	float factor = (float) aHeight / myBMP.getSize().y;
 	mySprite.setScale(factor, factor);
-	mySprite.setPosition(aXCenter - mySprite.getTextureRect().width / 2.0,
-			aYGround - aHeight);
+	mySprite.setOrigin(myBMP.getSize().x / 2.0f, myBMP.getSize().y);
+	mySprite.setPosition(aXCenter, aYGround);
 	mySprite.setRotation(-aRotation / (2 * 3.1415) * 360);
 	aTarget.draw(mySprite);
 }
@@ -46,6 +44,7 @@ void Sprite::DrawTiling(sf::RenderTarget& aTarget, float aXStart, float aYStart,
 
 	float factor = (float) (aYEnd - aYStart) / myBMP.getSize().y;
 	mySprite.setScale(factor, factor);
+	mySprite.setOrigin(0, 0);
 
 	int numreps = floor(
 			0.5 + (aXEnd - aXStart) / mySprite.getGlobalBounds().width);

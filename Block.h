@@ -12,7 +12,7 @@
 #include "ContactListener.h"
 #include "Sprite.h"
 
-#include <Box2D/Box2D.h>
+#include <box2d/box2d.h>
 
 //A non interactive game block
 class Block: public IDrawable, public UserData {

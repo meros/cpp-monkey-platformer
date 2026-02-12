@@ -1,5 +1,9 @@
-cmake_minimum_required(VERSION 2.6)
-project(cpp-monkey-platformer)
+cmake_minimum_required(VERSION 3.16)
+project(cpp-monkey-platformer LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXECUTABLE_NAME monkey_game)
 
@@ -31,26 +35,16 @@ set(SOURCES
   Block.cpp
   Bridge.cpp)
 
-# Detect and add SFML
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules")
-#Find any version 2.X of SFML
-#See the FindSFML.cmake file for additional details and instructions
-
-message(${CMAKE_MODULE_PATH})
-
 add_executable(${EXECUTABLE_NAME} ${HEADERS} ${SOURCES})
 
-find_package(SFML REQUIRED system window graphics network audio)
-if(SFML_FOUND)
-  include_directories(${SFML_INCLUDE_DIR})
-  target_link_libraries(${EXECUTABLE_NAME} ${SFML_LIBRARIES})
-endif()
+# SFML 2.6 (config mode)
+find_package(SFML 2.6 COMPONENTS system window graphics network audio REQUIRED)
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE sfml-system sfml-window sfml-graphics sfml-network sfml-audio)
 
-find_package(BOX2D REQUIRED)
-if(SFML_FOUND)
-  include_directories(${BOX2D_INCLUDE_DIR})
-  target_link_libraries(${EXECUTABLE_NAME} ${BOX2D_LIBRARIES})
-endif()
+# Box2D 2.4 (config mode)
+find_package(box2d REQUIRED)
+target_link_libraries(${EXECUTABLE_NAME} PRIVATE box2d::box2d)
 
-
-
+# Tests
+enable_testing()
+add_subdirectory(tests)
