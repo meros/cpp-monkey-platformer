@@ -33,7 +33,20 @@ endif()
 
 # --- Game executable ---
 add_executable(${EXECUTABLE_NAME}
-  src/main.cpp)
+  src/main.cpp
+  src/gfx/Palette.h src/gfx/Palette.cpp
+  src/gfx/Draw.h src/gfx/Draw.cpp
+  src/gfx/Assets.h src/gfx/Assets.cpp
+  src/gfx/Particles.h src/gfx/Particles.cpp
+  src/gfx/Background.h src/gfx/Background.cpp
+  src/gfx/TerrainRenderer.h src/gfx/TerrainRenderer.cpp
+  src/gfx/Camera.h src/gfx/Camera.cpp
+  src/gfx/Renderer.h src/gfx/Renderer.cpp src/gfx/RenderObjects.cpp
+  src/audio/Synth.h src/audio/Synth.cpp
+  src/audio/Audio.h src/audio/Audio.cpp
+  src/game/InputDevice.h src/game/InputDevice.cpp
+  src/game/UI.h src/game/UI.cpp
+  src/game/Game.h src/game/Game.cpp)
 target_link_libraries(${EXECUTABLE_NAME} PRIVATE leafwind_core
   sfml-system sfml-window sfml-graphics sfml-audio)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")

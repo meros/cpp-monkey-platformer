@@ -1,2 +1,5 @@
 build/
 result
+save.txt
+save.tmp
+*.png.tmp
