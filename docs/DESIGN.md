@@ -976,6 +976,7 @@ spec above. All ten levels are verified by scripted playthroughs on the real phy
 | Level | Change | Why |
 |---|---|---|
 | 3 | The three-rock climb (block 64–66 rows 23–25, rocks 61–63 rows 20–21 and 65–67 rows 17–18) became a rising staircase: block at 59–61, rocks at 63–65 and 67–69; the banana at (65,21) moved to (66,21). Same heights, same count, thorns still under the last gap. | Rock B overhung the only approach to block A (head room), and each +3 zigzag hop needed a frame-perfect sideways steer at the apex. |
+| 5 | A mushroom added at (62,37) in the hollow's far corner. | The fig corner was a pit with no way out except `R`; now Pip can bounce back onto the pillar. |
 | 6 | The puzzle crate moved from x=53 to x=51 (row 24). | With the crate at the plank's end there was no room for Pip to board the low end right of it. |
 | 7 | The secret's crumbling ledge moved from x=61–63 to x=62–64 and the fig from (62,8) to (63,8). | The gap was 7 tiles, not the 6 the text describes, and the tailwind leap fell a hair short; now the ledge also sits straight above updraft 1 as §4.3 says. Note: reaching it means hopping over the exit sensor on the plateau (a full jump clears it). |
 | 8 | The start bank (x=1–20) is one row higher; `P` and the first `S` moved up a row. | The bank sat a tile below pool 1's surface (a standing "wall of water"); every other bank is flush with its water. |

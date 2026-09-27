@@ -386,13 +386,35 @@ bool secret2(RouteBot& b) {
 	return b.ok && b.w->fig;
 }
 
+bool secret5(RouteBot& b) {
+	// the hollow's far corner: hop the beetle, take the fig, bounce back out onto the pillar
+	b.w->placePlayer(60.5f * cfg::TILE, 32.f * cfg::TILE - 0.3f);
+	b.idle(20);
+	b.until("into the corner", 600, [&] {
+		Input in = RouteBot::hold(1);
+		for (auto& be : b.w->beetles) {
+			if (be->dead) continue;
+			float dx = be->body->GetPosition().x / cfg::TILE - b.tx();
+			if (b.grounded() && dx > 0.6f && dx < 3.f) {
+				in.jumpPressed = true;
+				in.jumpHeld = true;
+			}
+		}
+		return in;
+	}, [&] { return b.w->fig; });
+	b.until("settle", 120, [&] { return RouteBot::hold(0); }, [&] { return b.grounded(); });
+	b.stopAt(63.9f);
+	b.bounce(62.f, true, 60.4f, [&] { return b.grounded() && b.feet() < 32.5f; });
+	return b.ok && b.w->fig;
+}
+
 struct Route {
 	int level;
 	bool (*fn)(RouteBot&);
 };
 
 const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}, {9, level9}, {10, level10}};
-const Route kSecrets[] = {{2, secret2}, {7, secret7}};
+const Route kSecrets[] = {{2, secret2}, {5, secret5}, {7, secret7}};
 
 } // namespace
 
