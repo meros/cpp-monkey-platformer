@@ -1045,3 +1045,36 @@ spec above. All ten levels are verified by scripted playthroughs on the real phy
   `--flow-test` (drives menus/cards/levels with synthetic keys), `--bench <N> <frames>`,
   `--dump-audio <dir>` (every synthesized sound as WAV) and `--mute`. `LEAFWIND_SAVE` overrides the
   save path, `LEAFWIND_DATA` the data directory.
+
+### 10.4 Polish pass (creative lead, after the first playable)
+
+Changes made after looking at the built game; none touch physics, level maps or the tests'
+route bots. The visual references (`tests/reference_screenshots/`) were regenerated.
+
+* **Depth separation.** The three parallax planes each sit in their own band of haze: far
+  ridges are lerped 68 % / 45 % toward `fog`, mid trees 42 % (with a soft lighter top instead
+  of a saturated highlight, and smaller canopy blobs), near trunks 12 %, and a fog wash is
+  drawn after each plane (far 30–60, mid 22–44, near 0–22 alpha, top→bottom). The playfield in
+  front stays full-value.
+* **Terrain rim.** Every solid tile and slope is first drawn expanded by 2.5 px in
+  `earthDark` darkened 45 %, under the fill, so the terrain silhouette has a crisp dark
+  outline against the fogged background (§5.3 edge shading is unchanged on top). The top-lit
+  band is a touch stronger (22 % toward `grassLight`).
+* **Playfield zoom 1.2×** (`cfg::VIEW_ZOOM`). The camera view is 800/1.2 × 600/1.2 px, so
+  16.7 × 12.5 tiles are visible instead of 20 × 15 and Pip, bananas and hazards read larger.
+  Terrain chunks are baked at 1.2× so they stay crisp; the monkey frames are drawn at the
+  same integer scale in world space and simply magnified with everything else (§2.1's
+  "native size" now means native in world pixels). The design maximum gap (5 tiles = 240
+  screen px) and jump height are still fully visible; §2.6 camera numbers are unchanged.
+* **Feel.** Take-off stretch (0.9×1.14 for 0.14 s, also on mushroom bounces), a soft-landing
+  squash (about half the hard-landing one, 0.06 s), all deformations pivot on the feet; Pip
+  leans up to ±7° into his horizontal velocity while airborne; the contact shadow stays on
+  the floor below him and fades out over 3 m of height, so jumps read in the air. The HUD
+  banana icon pops on every pickup; "Checkpoint!" and "Golden fig!" float up from the world
+  position for 1.4 s.
+* **HUD** icons are ~1.4× larger (panel 300×50, text 24 px).
+* **Title screen**: Pip is asleep on the leaf (drifting z's), the title floats gently, and
+  large leaves drift across the whole screen.
+* **Level 1 opening**: the Home Tree is drawn beside the start (renderer decor, level index 1
+  only): a trunk with a hollow, Nana Fig's green leaf still tucked inside, a branch with a
+  leaf cluster. Story and first impression, no gameplay effect.
