@@ -303,7 +303,7 @@ void Renderer::drawWaterBack(sf::RenderTarget& t, float) const {
 	Canvas c;
 	sf::Color top = withAlpha(pal.water, 200), bot = withAlpha(scale(pal.water, 0.7f), 215);
 	for (const WaterCol& col : water) {
-		float x0 = col.x * T, x1 = x0 + T;
+		float x0 = col.x * T;
 		float y0 = col.top * T + 4.f, y1 = (col.bottom + 1) * T;
 		float depthRows = std::max(1.f, static_cast<float>(col.bottom - col.top + 1));
 		sf::Color b2 = lerp(top, bot, std::min(1.f, depthRows / 5.f));

@@ -555,7 +555,10 @@ void Game::drawScene(sf::RenderTarget& t, float desat) {
 }
 
 void Game::render(sf::RenderTarget& t) {
+	// keep the caller's letterbox viewport for everything drawn in design coordinates
 	sf::View ui(sf::FloatRect(0.f, 0.f, VIEW_W, VIEW_H));
+	ui.setViewport(t.getView().getViewport());
+	t.setView(ui);
 	float deathFade = 0.f;
 	switch (myScreen) {
 	case Screen::Title:
@@ -901,9 +904,9 @@ void Game::drawPause(sf::RenderTarget& t) {
 		}
 		text(t, s ? assets.bold : assets.regular, items[i], 22, p, ui::Ink, Center);
 	}
-	const char* ctl[] = {"Arrows / A D: move   Space / Z / K: jump", "Up / Down: climb, swim, drop through branches",
-	                     "R: restart from checkpoint   - / =: volume   M: music"};
-	for (int i = 0; i < 3; ++i) text(t, assets.regular, ctl[i], 13, V2(400.f, 400.f + i * 20.f), withAlpha(ui::Ink, 200), Center);
+	const char* ctl[] = {"Arrows / A D: move    Space / Z / K: jump", "Up / Down: climb, swim, drop through",
+	                     "R: restart from checkpoint", "- / = : volume    M : music on/off"};
+	for (int i = 0; i < 4; ++i) text(t, assets.regular, ctl[i], 13, V2(400.f, 388.f + i * 18.f), withAlpha(ui::Ink, 200), Center);
 	if (myWorld) {
 		char buf[96];
 		std::snprintf(buf, sizeof(buf), "Bananas %d/%d   Deaths %d   %s", myWorld->bananas, myWorld->bananasTotal, myWorld->deaths,
@@ -944,14 +947,15 @@ void Game::drawResults(sf::RenderTarget& t) {
 	};
 	std::snprintf(buf, sizeof(buf), "%d / %d", lastRun.bananas, lastRun.total);
 	char best[48];
+	auto bestOr = [&](const char* s) { return rec.done ? std::string(s) : std::string(); };
 	std::snprintf(best, sizeof(best), "best %d", rec.bananas);
-	row(178.f, "Bananas", buf, best, lastBest.bananas);
-	row(224.f, "Golden fig", lastRun.fig ? "found!" : "not found", rec.fig ? "found before" : "", lastBest.fig);
+	row(178.f, "Bananas", buf, bestOr(best), lastBest.bananas);
+	row(224.f, "Golden fig", lastRun.fig ? "found!" : "not found", rec.fig && !lastRun.fig ? "found before" : "", lastBest.fig);
 	std::snprintf(buf, sizeof(buf), "%d", lastRun.deaths);
 	std::snprintf(best, sizeof(best), "best %d", rec.deaths);
-	row(268.f, "Deaths", buf, best, lastBest.deaths);
+	row(268.f, "Deaths", buf, bestOr(best), lastBest.deaths);
 	std::snprintf(best, sizeof(best), "best %s", formatTime(rec.time).c_str());
-	row(312.f, "Time", formatTime(lastRun.time), best, lastBest.time);
+	row(312.f, "Time", formatTime(lastRun.time), bestOr(best), lastBest.time);
 	std::vector<std::string> items = {levelIndex < NUM_LEVELS ? "Next level" : "Credits", "Replay", "Level select"};
 	for (size_t i = 0; i < items.size(); ++i) {
 		bool s = static_cast<int>(i) == resultsSel;

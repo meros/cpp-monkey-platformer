@@ -241,7 +241,7 @@ void Renderer::drawDecor(Canvas& c, SpriteBatch& glow, const World& w, float tim
 		c.line(wc + V2(10.f, 0.f), top + V2(l->w * T * 0.25f, 0.f), 2.f, ROPE);
 		if (l->primary && l->partner) {
 			V2 pw = px(l->partner->wheel);
-			c.line(wc + V2(0.f, -11.f), pw + V2(0.f, -11.f), 2.f, ROPE);
+			sagRope(c, wc + V2(0.f, -11.f), pw + V2(0.f, -11.f), 6.f, ROPE);
 		}
 		c.line(wc, wc + V2(0.f, -18.f), 4.f, IRON);
 		c.circle(wc, 12.f, WOOD_DARK, 16);
