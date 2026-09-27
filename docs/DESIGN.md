@@ -971,7 +971,7 @@ Recorded by the engineer while implementing this document. Everything not listed
 spec above. All ten levels are verified by scripted playthroughs on the real physics
 (`tests/test_levels.cpp`, run by `ctest` as `LevelRoutes`).
 
-### 10.1 Level map edits (minimal, each found by a failing playthrough)
+### 10.1 Level map edits (minimal; found by failing playthroughs or on review, re-validated with `--validate-levels` and the route tests)
 
 | Level | Change | Why |
 |---|---|---|
