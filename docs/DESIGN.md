@@ -962,3 +962,84 @@ and disable time-based animation by fixing `t = frames/60`).
   rounded terrain corners, light shafts, rain, foreground foliage, reflections (already skipped).
 * Not in scope: enemies beyond beetles, boss, dialogue trees, localisation, shaders beyond the
   optional greyscale, online anything, controller remapping UI.
+
+---
+
+## 10. Implementation notes (deviations and clarifications)
+
+Recorded by the engineer while implementing this document. Everything not listed here follows the
+spec above. All ten levels are verified by scripted playthroughs on the real physics
+(`tests/test_levels.cpp`, run by `ctest` as `LevelRoutes`).
+
+### 10.1 Level map edits (minimal, each found by a failing playthrough)
+
+| Level | Change | Why |
+|---|---|---|
+| 3 | The three-rock climb (block 64–66 rows 23–25, rocks 61–63 rows 20–21 and 65–67 rows 17–18) became a rising staircase: block at 59–61, rocks at 63–65 and 67–69; the banana at (65,21) moved to (66,21). Same heights, same count, thorns still under the last gap. | Rock B overhung the only approach to block A (head room), and each +3 zigzag hop needed a frame-perfect sideways steer at the apex. |
+| 6 | The puzzle crate moved from x=53 to x=51 (row 24). | With the crate at the plank's end there was no room for Pip to board the low end right of it. |
+| 8 | The start bank (x=1–20) is one row higher; `P` and the first `S` moved up a row. | The bank sat a tile below pool 1's surface (a standing "wall of water"); every other bank is flush with its water. |
+| 10 | The two wall crumbles and the branch above them moved down one row (22 → 19 → 16 → 13, then +1 onto mover 2). | From the wall-ledge checkpoint the first crumble was +4, which §2.2 forbids. |
+
+### 10.2 Feel and physics
+
+* **Launch velocities** (jump, rope hop, mushroom bounces, stomp, swim hop) get half a gravity step
+  added (`cfg::launch`, e.g. −9.21 instead of −9.0 m/s). Box2D integrates semi-implicitly, which
+  otherwise shaves v·dt/2 off every apex; measured heights now match §2.2/§3.9 (3.24-tile jump,
+  1.40-tile tap, 4.0 / 6.77-tile bounces).
+* **Wind** is a separate drift velocity (+6 m/s² in the air, decays 0.35/s) that the run controller
+  does not cancel — otherwise holding a direction would nullify it. On the ground it only drifts an
+  idle Pip (2 m/s²); while running it bleeds off quickly, so take-off speed is full and headwind
+  jumps reach ≈3 tiles, tailwind ≈8–9, as designed.
+* **Currents** use the same drift mechanism in water (3 m/s², terminal ≈2 m/s), so Pip can just
+  about swim upstream.
+* **Updrafts** act while Pip's centre *or feet* are in the column, so he leaves the top with his feet
+  and coasts ≈0.6 tile above it (with centre-only sampling he cleared the ledge by 0.04 tile).
+* **Slopes**: the controlled speed is measured along the surface (4.5 m/s along the slope) and the
+  tangential part of gravity is cancelled so Pip stands still. Slope handling applies to static
+  ground and see-saws; bridges, logs and crates take plain horizontal velocity.
+* **Moving supports**: kinematic movers lend their full velocity. Dynamic supports (logs, planks,
+  crates) lend their horizontal velocity only while Pip is idle — running on a light log otherwise
+  fed Pip's push back into the log (runaway speed).
+* **Vines**: while grabbed, an extra rope-length distance joint (anchor → Pip, max = length along the
+  vine) keeps the 1 kg monkey from stretching the 0.03 kg segments; the grab anchor is on the
+  segment's axis so Pip is pulled onto the vine. The top joint to the anchor is unlimited.
+* **Bridges**: plank links are 1.02 × tile long (slack for the sag) and each plank has rope-limit
+  distance joints to both anchors instead of one anchor-to-anchor joint (which would join two static
+  points). Measured sag under Pip: 16-plank ≈1.6–1.7 tiles.
+* **See-saws**: a crate spawned above a see-saw starts resting on the plank with the plank already at
+  its limit (dropping it on a level plank flung it off). The 40° puzzle see-saw has a grippy plank
+  (friction 1.6) and low end stops so the crate stays aboard.
+* **Movers**: even-numbered movers start half a cycle out of phase, so neighbouring lily pads meet
+  (level 8's two pads were otherwise always 11 tiles apart).
+* **Pulleys**: platforms are 2 cm narrower than their shafts (no wall binding) and each pair's speed
+  is capped at 2.4 / `damping` m/s, applied through the ratio. With the documented masses the boulder
+  flung lift 5 up 12 tiles in 0.7 s; now it takes ≈5 s as §4.3 intends. Default lifts move ≤2.4 m/s.
+* **Level 9 lift 4** cannot be a true bridge: with ratio 0.5, "Pip alone on lift 3 does nothing"
+  and "lift 4 holds Pip" are contradictory for any masses. It rises to walkway level and works as a
+  stepping stone (run-jump, touch down on its far end, keep running); falling in is recoverable
+  with `R`. Masses are as documented.
+* **Falling logs** crush only when they come down on top of Pip (contact normal pointing down onto
+  him and his centre under the log's span); a clipped shoulder just shoves him. Crush checks use the
+  object's pre-step velocity. Floating logs that go over a bottomless edge stop colliding with
+  terrain (they tumbled and wedged in level 4's falls), and water columns that reach the map bottom
+  get an invisible bed.
+* **Sensors**: the foot sensor is an AABB query + `b2TestOverlap` each step; bananas, figs,
+  checkpoints, thorns, the exit and beetle stomps/side hits are geometric overlap tests (beetles do
+  not physically collide with Pip). Pip's body never sleeps.
+* Level 7: falling from the crumbling ledges is lethal (the gap under them is bottomless, contrary to
+  "falls land on ground"); unchanged — the checkpoint is right before it.
+
+### 10.3 Presentation, flow and tooling
+
+* Font: DejaVu Sans / Sans Bold (`data/fonts/`, licence included) rather than Fredoka/Nunito.
+* Convex terrain corners are rounded with a 9 px (≈0.22 tile) radius; grass caps overhang edges.
+* No options screen: volume (`-` / `=`) and music (`M`) are hotkeys, shown in the pause screen and
+  stored in the save file. Title plays the canopy ambience and music.
+* After level 10's outro the epilogue follows directly (no results screen), per §7.1.
+* Validator: rules 1–4 of §8.2 plus building every level's physics world; rule 5 (reachability) is
+  covered by the scripted playthroughs instead.
+* Extra command-line modes: `--screenshot` also accepts `title`, `select`, `credits`,
+  `card:prologue|<N>|out<N>|epilogue|bonus`, `pause:<N>`, `results:<N>` and `--place <tx> <ty>`;
+  `--flow-test` (drives menus/cards/levels with synthetic keys), `--bench <N> <frames>`,
+  `--dump-audio <dir>` (every synthesized sound as WAV) and `--mute`. `LEAFWIND_SAVE` overrides the
+  save path, `LEAFWIND_DATA` the data directory.

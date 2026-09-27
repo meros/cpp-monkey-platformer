@@ -281,6 +281,20 @@ void Game::update(float dt) {
 		fade = std::max(0.f, fade - dt * fadeSpeed);
 	}
 	MenuInput m = input.menu();
+	if (m.volume != 0) {
+		save.volume = std::clamp(save.volume + 0.1f * m.volume, 0.f, 1.f);
+		audio.setVolume(save.volume);
+		audio.play(Sfx::UiMove);
+		volumeShown = 1.5f;
+		if (allowSave) save.save();
+	}
+	if (m.music) {
+		save.music = !save.music;
+		audio.setMusicEnabled(save.music);
+		volumeShown = 1.5f;
+		if (allowSave) save.save();
+	}
+	volumeShown = std::max(0.f, volumeShown - dt);
 	if (fadeDir > 0.f) m = MenuInput(); // ignore input while fading out
 	switch (myScreen) {
 	case Screen::Title: updateTitle(dt, m); break;
@@ -609,6 +623,16 @@ void Game::render(sf::RenderTarget& t) {
 	t.setView(ui);
 	float black = std::max({fade, deathFade, respawnFade / 0.2f});
 	if (black > 0.f) dim(t, static_cast<int>(255 * std::min(1.f, black)));
+	if (volumeShown > 0.f) {
+		float a = std::min(1.f, volumeShown / 0.3f);
+		Canvas c;
+		c.roundRect(310.f, 548.f, 180.f, 36.f, 10.f, withAlpha(ui::Cream, static_cast<int>(220 * a)));
+		c.draw(t);
+		char buf[64];
+		std::snprintf(buf, sizeof(buf), "Volume %d%%  \xC2\xB7  Music %s", static_cast<int>(save.volume * 100.f + 0.5f),
+		              save.music ? "on" : "off");
+		text(t, assets.regular, buf, 15, V2(400.f, 556.f), ui::Ink, Center, a);
+	}
 }
 
 void Game::drawMenu(sf::RenderTarget& t, const std::vector<std::string>& items, int sel, V2 pos, unsigned size,
@@ -878,7 +902,7 @@ void Game::drawPause(sf::RenderTarget& t) {
 		text(t, s ? assets.bold : assets.regular, items[i], 22, p, ui::Ink, Center);
 	}
 	const char* ctl[] = {"Arrows / A D: move   Space / Z / K: jump", "Up / Down: climb, swim, drop through branches",
-	                     "R: restart from checkpoint   Esc: pause"};
+	                     "R: restart from checkpoint   - / =: volume   M: music"};
 	for (int i = 0; i < 3; ++i) text(t, assets.regular, ctl[i], 13, V2(400.f, 400.f + i * 20.f), withAlpha(ui::Ink, 200), Center);
 	if (myWorld) {
 		char buf[96];

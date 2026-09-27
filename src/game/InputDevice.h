@@ -8,6 +8,8 @@
 struct MenuInput {
 	bool up = false, down = false, left = false, right = false;
 	bool confirm = false, back = false, pause = false, restart = false;
+	int volume = 0;      // -1 / +1 (minus / equals keys)
+	bool music = false;  // M toggles music
 	bool any() const { return up || down || left || right || confirm || back || pause || restart; }
 };
 

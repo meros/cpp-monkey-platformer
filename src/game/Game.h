@@ -88,6 +88,7 @@ private:
 
 	Screen myScreen = Screen::Title;
 	float clock = 0.f;      // screen-independent animation clock
+	float volumeShown = 0.f;
 	float screenT = 0.f;    // time on the current screen
 
 	// fading

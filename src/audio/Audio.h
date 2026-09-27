@@ -8,6 +8,7 @@
 #include <SFML/Audio.hpp>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 class World;
@@ -41,6 +42,9 @@ enum class Sfx {
 	UiConfirm,
 	Count
 };
+
+// Every synthesized sound (SFX, ambience and music loops) by name, for --dump-audio.
+std::vector<std::pair<std::string, std::vector<float>>> synthesizeAllSounds();
 
 class Audio {
 public:

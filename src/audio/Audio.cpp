@@ -56,7 +56,7 @@ std::vector<Buf> buildSfx() {
 		Buf b = tone(Wave::Square, 220.f, 440.f, 0.09f, false, 0.4f);
 		envAD(b, 0.002f, 0.08f);
 		lowpass(b, 3000.f);
-		gain(b, 0.35f);
+		gain(b, 0.24f);
 		set(Sfx::Jump, b);
 	}
 	{ // land soft
@@ -410,6 +410,24 @@ Buf noiseLoop(float cutoff, unsigned seed, bool brown = false) {
 }
 
 } // namespace
+
+std::vector<std::pair<std::string, std::vector<float>>> synthesizeAllSounds() {
+	static const char* names[] = {"jump", "land_soft", "land_hard", "step", "step_wood", "banana0", "banana1",
+	                              "banana2", "banana3", "banana4", "banana5", "banana6", "banana7", "fig",
+	                              "rope_grab", "rope_release", "climb_tick", "splash", "drip", "hurt", "checkpoint",
+	                              "level_complete", "boing", "squish", "crumble_shake", "crumble_crack", "log_creak",
+	                              "log_thud", "boulder_impact", "thunder", "gust_whoosh", "ui_move", "ui_confirm"};
+	std::vector<std::pair<std::string, std::vector<float>>> out;
+	auto sfx = buildSfx();
+	for (size_t i = 0; i < sfx.size() && i < sizeof(names) / sizeof(names[0]); ++i) out.push_back({names[i], sfx[i]});
+	for (int b = 0; b < static_cast<int>(Biome::Count); ++b) {
+		out.push_back({std::string("ambience_") + biomeName(static_cast<Biome>(b)), buildAmbience(static_cast<Biome>(b))});
+		out.push_back({std::string("music_") + biomeName(static_cast<Biome>(b)), buildMusic(static_cast<Biome>(b))});
+	}
+	out.push_back({"loop_wind_low", noiseLoop(200.f, 71)});
+	out.push_back({"loop_wind_high", noiseLoop(1500.f, 73)});
+	return out;
+}
 
 Audio::Audio(bool enabled) : myEnabled(enabled) {
 	if (!myEnabled) return;

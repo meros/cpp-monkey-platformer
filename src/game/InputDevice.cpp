@@ -30,6 +30,11 @@ void InputDevice::handleEvent(const sf::Event& e) {
 		edges.restart = true;
 		restartEdge = true;
 		break;
+	case K::Hyphen:
+	case K::Subtract: edges.volume = -1; break;
+	case K::Equal:
+	case K::Add: edges.volume = 1; break;
+	case K::M: edges.music = true; break;
 	default: break;
 	}
 }

@@ -10,6 +10,7 @@
 //   monkey_game --flow-test                  drive menus/cards/levels with synthetic keys
 //   --mute                                   no audio device use at all
 #include "audio/Audio.h"
+#include "audio/Synth.h"
 #include "core/Config.h"
 #include "core/Headless.h"
 #include "core/Level.h"
@@ -215,6 +216,73 @@ static int runFlowTest() {
 	return fails ? 1 : 0;
 }
 
+// Writes every synthesized sound as a 16-bit mono WAV (no audio device needed).
+static int runDumpAudio(const std::string& dir) {
+	auto sounds = synthesizeAllSounds();
+	for (const auto& [name, buf] : sounds) {
+		auto pcm = synth::toPCM(buf);
+		std::string path = dir + "/" + name + ".wav";
+		FILE* f = std::fopen(path.c_str(), "wb");
+		if (!f) {
+			std::fprintf(stderr, "cannot write %s\n", path.c_str());
+			return 1;
+		}
+		auto u32 = [&](uint32_t v) { std::fwrite(&v, 4, 1, f); };
+		auto u16 = [&](uint16_t v) { std::fwrite(&v, 2, 1, f); };
+		uint32_t bytes = static_cast<uint32_t>(pcm.size() * 2);
+		std::fwrite("RIFF", 1, 4, f);
+		u32(36 + bytes);
+		std::fwrite("WAVEfmt ", 1, 8, f);
+		u32(16);
+		u16(1);
+		u16(1);
+		u32(synth::SR);
+		u32(synth::SR * 2);
+		u16(2);
+		u16(16);
+		std::fwrite("data", 1, 4, f);
+		u32(bytes);
+		std::fwrite(pcm.data(), 2, pcm.size(), f);
+		std::fclose(f);
+	}
+	std::printf("wrote %zu sounds to %s\n", sounds.size(), dir.c_str());
+	return 0;
+}
+
+// Renders a level every frame for N frames and reports the average frame cost.
+static int runBench(int level, int frames) {
+	sf::RenderWindow win(sf::VideoMode(800, 600), "Leafwind bench", sf::Style::Titlebar | sf::Style::Close);
+	Assets assets;
+	if (!assets.load()) return 1;
+	Audio audio(false);
+	SaveData save;
+	save.setPath("/nonexistent/leafwind-bench.txt");
+	Game game(assets, audio, save, false);
+	game.deterministic = true;
+	game.setFocused(false);
+	game.startLevel(level);
+	sf::RenderTexture rt;
+	rt.create(800, 600);
+	sf::Clock clk;
+	float upd = 0.f, ren = 0.f;
+	for (int i = 0; i < frames; ++i) {
+		sf::Event e;
+		while (win.pollEvent(e)) {
+		}
+		clk.restart();
+		game.update(cfg::DT);
+		upd += clk.restart().asSeconds();
+		rt.clear();
+		game.render(rt);
+		rt.display();
+		(void)rt.getTexture().copyToImage().getPixel(0, 0); // force the GPU to finish
+		ren += clk.restart().asSeconds();
+	}
+	std::printf("level %d: update %.2f ms, render %.2f ms per frame (%d frames)\n", level, upd * 1000.f / frames,
+	            ren * 1000.f / frames, frames);
+	return 0;
+}
+
 static int runGame(int playLevel, bool mute) {
 	sf::RenderWindow win(sf::VideoMode(800, 600), "Leafwind");
 	win.setFramerateLimit(60);
@@ -268,6 +336,8 @@ int main(int argc, char** argv) {
 		std::string a = argv[i];
 		if (a == "--validate-levels") return runValidateLevels();
 		if (a == "--flow-test") return runFlowTest();
+		if (a == "--dump-audio" && i + 1 < argc) return runDumpAudio(argv[i + 1]);
+		if (a == "--bench" && i + 2 < argc) return runBench(std::atoi(argv[i + 1]), std::atoi(argv[i + 2]));
 		if (a == "--test-physics") {
 			int lvl = (i + 1 < argc && std::isdigit(static_cast<unsigned char>(argv[i + 1][0]))) ? std::atoi(argv[i + 1]) : 0;
 			return runPhysicsTest(lvl);
