@@ -66,7 +66,7 @@ static int physicsTestLevel(int index) {
 				std::printf("level%02d: NaN body at frame %d\n", index, frame);
 				return false;
 			}
-			if (q.x < -2.f || q.x > W + 2.f || q.y > H + 4.f || q.y < -40.f) {
+			if (q.x < -2.f || q.x > W + 2.f || q.y > H + 2.5f || q.y < -40.f) {
 				std::printf("level%02d: body out of bounds (%.2f, %.2f) at frame %d\n", index, q.x, q.y, frame);
 				return false;
 			}

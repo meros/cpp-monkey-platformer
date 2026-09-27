@@ -789,7 +789,8 @@ void World::updateObjects(float dt) {
 		if (!b->body) continue;
 		if (b->dead) {
 			b->deadTimer += dt;
-			if (b->deadTimer > 1.5f && b->body->IsEnabled()) b->body->SetEnabled(false);
+			bool gone = b->body->GetPosition().y > level.heightM() + 1.5f;
+			if ((b->deadTimer > 1.5f || gone) && b->body->IsEnabled()) b->body->SetEnabled(false);
 			continue;
 		}
 		b->walkPhase += dt;
