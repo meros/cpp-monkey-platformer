@@ -431,6 +431,17 @@ void Player::preStep(World& world, const Input& in, float dt) {
 		// in the world frame avoids a feedback loop where Pip's push speeds up a light log.
 		if (!kinematicCarrier && in.dir != 0) carrier.x = 0.f;
 		float vx = v.x - carrier.x - windVel;
+		// On a slope the controlled speed is the speed along the surface, not its x component.
+		b2Vec2 slopeT(0.f, 0.f);
+		{
+			Entity* ge = groundBody ? entityOf(groundBody) : nullptr;
+			bool slopeGround = groundBody && (groundBody->GetType() == b2_staticBody || (ge && ge->kind == Kind::Seesaw));
+			if (grounded && sinceJump > 0.05f && slopeGround && std::fabs(groundNormal.x) > 0.05f) {
+				slopeT.Set(-groundNormal.y, groundNormal.x);
+				if (slopeT.x < 0) slopeT = -slopeT;
+				vx = b2Dot(v - carrier, slopeT) - windVel;
+			}
+		}
 		float target = in.dir * RUN_SPEED;
 		bool braking = false;
 		if (grounded) {
@@ -463,13 +474,10 @@ void Player::preStep(World& world, const Input& in, float dt) {
 		if (grounded && sinceJump > 0.05f) {
 			// Slope handling for terrain slopes and see-saw planks; wobbly bridges, logs and
 			// crates just take horizontal velocity and let the contacts do the rest.
-			Entity* ge = groundBody ? entityOf(groundBody) : nullptr;
-			bool slopeGround = groundBody && (groundBody->GetType() == b2_staticBody || (ge && ge->kind == Kind::Seesaw));
-			bool tilted = slopeGround && std::fabs(groundNormal.x) > 0.05f;
+			bool tilted = slopeT.x > 0.f;
 			if (tilted) {
 				// run along the surface at full speed; idle = stand still
-				b2Vec2 t(-groundNormal.y, groundNormal.x);
-				if (t.x < 0) t = -t;
+				b2Vec2 t = slopeT;
 				float speed = vx + windVel;
 				outVx = t.x * speed + carrier.x;
 				outVy = t.y * speed + carrier.y;
@@ -649,8 +657,16 @@ void Player::postStep(World& world, float dt) {
 			}
 		}
 		if (e->kind == Kind::FallLog) {
-			float lvy = std::max(static_cast<FallLog*>(e)->lastVy, ce->other->GetLinearVelocity().y);
-			if (lvy > 3.f && ce->other->GetPosition().y < p.y - 0.2f) {
+			// Crushed only when the log comes down on top of Pip: contact normal pointing down onto
+			// him and his centre under the log's span (a clipped shoulder just gets shoved).
+			FallLog* lg = static_cast<FallLog*>(e);
+			float lvy = std::max(lg->lastVy, ce->other->GetLinearVelocity().y);
+			b2WorldManifold wm;
+			c->GetWorldManifold(&wm);
+			b2Vec2 n = c->GetFixtureA()->GetBody() == body ? -wm.normal : wm.normal; // log -> Pip
+			float halfW = lg->tiles * TILE * 0.5f;
+			bool under = std::fabs(p.x - ce->other->GetPosition().x) < halfW;
+			if (lvy > 3.f && n.y > 0.6f && under && ce->other->GetPosition().y < p.y - 0.2f) {
 				kill(world);
 				return;
 			}

@@ -53,6 +53,16 @@ public:
 			std::printf("        f=%5d tile (%6.2f, feet %6.2f) st=%d v=(%5.2f,%6.2f) in=%2d%s%s seg=%d\n", frames, tx(), feet(),
 			            static_cast<int>(p().state), p().vel().x, p().vel().y, in.dir, in.jumpHeld ? " J" : "",
 			            in.jumpPressed ? "!" : "", p().ropeSeg);
+		if (trace > 0 && frames % trace == 0 && std::getenv("ROUTE_TRACE_OBJ")) {
+			for (auto& l : w->fallLogs)
+				if (l->state != FallLog::Hanging)
+					std::printf("            log x=%.2f y=%.2f vy=%.2f st=%d\n", l->body->GetPosition().x / cfg::TILE,
+					            l->body->GetPosition().y / cfg::TILE, l->body->GetLinearVelocity().y, static_cast<int>(l->state));
+			for (auto& bo : w->boulders)
+				if (bo->alive)
+					std::printf("            boulder x=%.2f y=%.2f v=(%.2f,%.2f)\n", bo->body->GetPosition().x / cfg::TILE,
+					            bo->body->GetPosition().y / cfg::TILE, bo->body->GetLinearVelocity().x, bo->body->GetLinearVelocity().y);
+		}
 		if (w->deaths > deathsAllowed && ok) fail("died");
 	}
 	void idle(int n) {

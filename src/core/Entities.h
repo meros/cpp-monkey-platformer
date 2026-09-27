@@ -127,6 +127,7 @@ struct Lift : Entity {
 	b2Vec2 wheel;        // ground anchor (wheel centre)
 	Lift* partner = nullptr;
 	bool primary = false;
+	float maxSpeed = 2.4f; // m/s: 2.4 / damping (DESIGN 4.3 level 9: damping 4 => ~5 s rise)
 };
 
 struct Crumble : Entity {

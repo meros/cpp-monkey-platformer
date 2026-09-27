@@ -246,12 +246,54 @@ bool level8(RouteBot& b) {
 	return b.ok;
 }
 
+bool level9(RouteBot& b) {
+	Lift* lift[7] = {nullptr};
+	{
+		int k = 1;
+		for (auto& l : b.w->lifts) lift[k++] = l.get();
+	}
+	// (A) lift 1 takes Pip down 18 tiles
+	b.walkTo(17.2f);
+	b.until("ride lift 1 down", 600, [&] { return RouteBot::hold(0); },
+	        [&] { return b.grounded() && b.feet() > 30.f && std::fabs(lift[1]->body->GetLinearVelocity().y) < 0.02f; });
+	// (B) crate onto lift 3 raises lift 4 as a bridge
+	Crate* crate = b.w->crates[0].get();
+	b.until("push crate onto lift 3", 900, [&] { return RouteBot::hold(1); },
+	        [&] { return crate->body->GetPosition().x / cfg::TILE > 46.85f; });
+	b.until("step back", 60, [&] { return RouteBot::hold(-1); }, [&] { return b.tx() < 45.f; });
+	b.until("lift 4 up", 600, [&] { return RouteBot::hold(0); },
+	        [&] { return lift[4]->body->GetPosition().y / cfg::TILE < 30.5f; });
+	b.stopAt(45.2f);
+	b.jumpAt(NAN, 1, 14, 1, [&] { return b.onGroundRightOf(49.5f); });
+	b.stopAt(49.6f);
+	// lift 4 sinks under Pip's weight: run-jump, touch down on its far end, keep running
+	b.jumpAt(54.5f, 1, 30, 1, [&] { return b.grounded() && b.tx() > 61.3f; });
+	b.walkTo(69.f);
+	// (C) boulder trap: clear the pit, sprint up the slope under the hanging log
+	b.jumpAt(70.6f, 1, 20, 1, [&] { return b.grounded() && b.tx() > 75.8f; });
+	b.until("up the slope", 600, [&] { return RouteBot::hold(1); }, [&] { return b.grounded() && b.tx() > 88.f; });
+	// (D) push the boulder onto lift 6, run back to lift 5 and ride it up
+	Boulder* heavy = nullptr;
+	for (auto& bo : b.w->boulders)
+		if (bo->body->GetPosition().x / cfg::TILE > 100.f) heavy = bo.get();
+	b.until("push the boulder off", 600, [&] { return RouteBot::hold(1); },
+	        [&] { return heavy->body->GetPosition().x / cfg::TILE > 117.4f; });
+	b.until("back down the slope", 600, [&] { return RouteBot::hold(-1); }, [&] { return b.grounded() && b.tx() < 110.3f; });
+	b.hopOnto(lift[5]->body, -1, 0.5f, 4.f, 3.1f);
+	b.until("ride lift 5 up", 900, [&] {
+		float diff = lift[5]->body->GetPosition().x / cfg::TILE - b.tx();
+		return RouteBot::hold(diff > 0.3f ? 1 : (diff < -0.3f ? -1 : 0));
+	}, [&] { return b.grounded() && b.feet() < 10.3f; });
+	b.until("exit", 600, [&] { return RouteBot::hold(-1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
 struct Route {
 	int level;
 	bool (*fn)(RouteBot&);
 };
 
-const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}};
+const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}, {9, level9}};
 
 } // namespace
 

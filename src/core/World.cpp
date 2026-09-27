@@ -532,6 +532,7 @@ void World::buildObjects() {
 		lbd.type = b2_dynamicBody;
 		lbd.fixedRotation = true;
 		lbd.linearDamping = o.get("damping", 1.f);
+		l->maxSpeed = 2.4f / std::max(0.25f, o.get("damping", 1.f));
 		lbd.position.Set((o.x + w * 0.5f) * TILE, tileY(o.y) + 0.2f);
 		l->body = b2->CreateBody(&lbd);
 		setEntity(l->body, l.get());
@@ -554,6 +555,10 @@ void World::buildObjects() {
 		byDigit[d]->primary = true;
 		Lift* a = byDigit[d];
 		Lift* b = byDigit[p];
+		// speed(a) = ratio * speed(b): cap the pair by the stricter of the two platforms
+		float capB = std::min(b->maxSpeed, a->maxSpeed / ratio);
+		a->maxSpeed = capB * ratio;
+		b->maxSpeed = capB;
 		b2PulleyJointDef pd;
 		b2Vec2 aa = a->body->GetPosition() - b2Vec2(0.f, 0.2f);
 		b2Vec2 ba = b->body->GetPosition() - b2Vec2(0.f, 0.2f);
@@ -869,6 +874,15 @@ void World::updateObjects(float dt) {
 
 void World::postObjects(float dt) {
 	(void)dt;
+	// Old mill lifts are slow contraptions: cap each platform's speed (its partner follows via
+	// the pulley constraint).
+	for (auto& l : lifts) {
+		b2Vec2 v = l->body->GetLinearVelocity();
+		if (std::fabs(v.y) > l->maxSpeed) {
+			v.y = std::copysign(l->maxSpeed, v.y);
+			l->body->SetLinearVelocity(v);
+		}
+	}
 	const float killY = level.heightM() + 2.f;
 	cratePush = 0.f;
 	for (auto& c : crates) {

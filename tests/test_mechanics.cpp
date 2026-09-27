@@ -488,7 +488,7 @@ void testPulleys() {
 	std::printf("    lift 1 at rest y=%.2f\n", y0);
 	// step on lift 1
 	s.w->placePlayer(l1->body->GetPosition().x, y0 - 0.6f);
-	s.idle(180);
+	s.idle(300);
 	float drop = (l1->body->GetPosition().y - y0) / 0.5f;
 	std::printf("    lift 1 descended %.1f tiles with Pip (design 18); Pip alive %d\n", drop, s.p().alive());
 	CHECK(drop > 16.f && s.p().alive(), "lift 1 did not bring Pip down\n");
