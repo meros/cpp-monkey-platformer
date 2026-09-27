@@ -139,6 +139,49 @@ void Renderer::drawDecor(Canvas& c, SpriteBatch& glow, const World& w, float tim
 		}
 	}
 
+	// ---- the Home Tree (level 1 only): Pip's tree beside the start, with Nana Fig's leaf
+	// still in the hollow. Gives the opening screen a subject and ties it to the story.
+	if (L.index == 1) {
+		V2 g((w.startX - 1.4f) * T + T * 0.5f, (w.startY + 1) * T);
+		if (visible(vr, g, 600.f)) {
+			sf::Color bark = lerp(pal.earthDark, pal.near, 0.35f);
+			sf::Color barkHi = lerp(bark, pal.grassLight, 0.16f);
+			sf::Color barkDk = lerp(bark, sf::Color::Black, 0.3f);
+			float tw = T * 1.7f;
+			// trunk rising out of view, tapering; a lighter strip catches the light
+			c.quad(g + V2(-tw * 0.5f, 6.f), g + V2(tw * 0.5f, 6.f), g + V2(tw * 0.36f, -T * 16.f), g + V2(-tw * 0.36f, -T * 16.f), bark);
+			c.quad(g + V2(-tw * 0.32f, 6.f), g + V2(-tw * 0.16f, 6.f), g + V2(-tw * 0.12f, -T * 16.f), g + V2(-tw * 0.25f, -T * 16.f), barkHi);
+			for (int k = 0; k < 9; ++k) {
+				float yy = g.y - T * (1.2f + k * 1.55f);
+				c.line(V2(g.x - tw * 0.3f + (k % 3) * 8.f, yy), V2(g.x + tw * 0.1f + (k % 2) * 10.f, yy + 5.f), 2.f, withAlpha(barkDk, 120));
+			}
+			// root flares
+			c.tri(g + V2(-tw * 1.3f, 8.f), g + V2(-tw * 0.45f, -T * 1.1f), g + V2(-tw * 0.1f, 8.f), bark);
+			c.tri(g + V2(tw * 1.3f, 8.f), g + V2(tw * 0.45f, -T * 1.1f), g + V2(tw * 0.1f, 8.f), bark);
+			// a branch reaching right with a leaf cluster, and a stub on the left
+			V2 b0 = g + V2(tw * 0.3f, -T * 6.2f), b1 = g + V2(tw * 0.3f + T * 3.6f, -T * 7.4f);
+			c.taper(b0, b1, 16.f, 6.f, bark);
+			c.taper(b0 + V2(0.f, -3.f), b1 + V2(0.f, -3.f), 8.f, 3.f, barkHi);
+			for (int k = 0; k < 9; ++k) {
+				V2 p = b1 + V2(std::cos(k * 0.75f) * T * 1.1f, -T * 0.5f - std::sin(k * 1.3f) * T * 0.6f);
+				c.circle(p, T * (0.7f + 0.2f * (k % 3)), lerp(pal.mid, pal.grass, 0.3f + 0.1f * (k % 2)));
+				c.circle(p + V2(-5.f, -7.f), T * (0.42f + 0.1f * (k % 3)), lerp(pal.grass, pal.grassLight, 0.35f));
+			}
+			c.taper(g + V2(-tw * 0.3f, -T * 8.5f), g + V2(-tw * 0.3f - T * 1.4f, -T * 9.3f), 12.f, 4.f, bark);
+			// the hollow where Pip sleeps, with Nana Fig's big green leaf tucked inside
+			V2 hc = g + V2(tw * 0.05f, -T * 3.1f);
+			c.ellipse(hc, T * 0.78f, T * 1.02f, barkDk);
+			c.ellipse(hc + V2(0.f, 2.f), T * 0.68f, T * 0.92f, sf::Color(0x1F, 0x16, 0x0E));
+			goldenLeaf(c, hc + V2(2.f, T * 0.45f), T * 0.9f, T * 1.5f, 1.25f, sf::Color(0x58, 0xB3, 0x48), sf::Color(0x3F, 0x8E, 0x3A));
+			glow.add(Tex::Glow, hc + V2(0.f, T * 0.3f), V2(T * 1.2f, T * 1.2f), 0.f, sf::Color(0xFF, 0xE0, 0xA0, 35));
+			for (int k = 0; k < 8; ++k) {
+				float a = PI + 0.15f + k * PI / 7.5f;
+				V2 p = hc + V2(std::cos(a) * T * 0.8f, std::sin(a) * T * 1.04f);
+				c.leaf(p, V2(std::cos(a), std::sin(a)), 12.f, 4.5f, (k % 2) ? pal.grass : pal.grassLight);
+			}
+		}
+	}
+
 	// ---- checkpoints: carved totem + lantern ----
 	for (size_t i = 0; i < w.checkpoints.size(); ++i) {
 		const Checkpoint& cp = w.checkpoints[i];

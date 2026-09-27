@@ -106,7 +106,7 @@ private:
 	bool sceneOk = false;
 	float acc = 0.f;
 	float levelT = 0.f;
-	float hudAlpha = 1.f, hudIdle = 0.f;
+	float hudAlpha = 1.f, hudIdle = 0.f, hudPop = 0.f;
 	float completeT = -1.f;
 	float respawnFade = 0.f;
 	bool paused = false;
@@ -127,6 +127,17 @@ private:
 	float cardOut = -1.f;
 	std::function<void()> cardsThen;
 
-	// credits
-	Particles creditLeaves;
+	// floating world-space labels ("Checkpoint!", "Golden fig!")
+	struct Popup {
+		b2Vec2 at; // metres
+		float t = 0.f;
+		std::string text;
+		sf::Color col;
+	};
+	std::vector<Popup> popups;
+	void drawPopups(sf::RenderTarget& t);
+
+	// screen-space drifting leaves (title, credits)
+	Particles screenLeaves;
+	void spawnScreenLeaves(float dt, float perSecond, float sizeScale);
 };

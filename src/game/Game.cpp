@@ -45,7 +45,7 @@ Game::Game(const Assets& a, Audio& au, SaveData& s, bool allow) : assets(a), aud
 		std::string err;
 		if (loadLevelIndex(i, L, err)) save.levels[i].total = L.count('b');
 	}
-	creditLeaves.seed(99);
+	screenLeaves.seed(99);
 	audio.setVolume(save.volume);
 	audio.setMusicEnabled(save.music);
 }
@@ -96,6 +96,7 @@ void Game::transition(std::function<void()> fn, float outTime) {
 
 void Game::goTitle() {
 	loadWorld(1);
+	screenLeaves.clear();
 	myRenderer->hidePlayer = true;
 	myScreen = Screen::Title;
 	screenT = 0.f;
@@ -145,6 +146,7 @@ void Game::startLevel(int index) {
 	paused = false;
 	pauseSel = 0;
 	respawnFade = 0.f;
+	popups.clear();
 	fade = 1.f;
 	fadeDir = -1.f;
 	fadeSpeed = 1.f / 0.4f;
@@ -257,7 +259,7 @@ void Game::showResults() {
 void Game::goCredits() {
 	myScreen = Screen::Credits;
 	screenT = 0.f;
-	creditLeaves.clear();
+	screenLeaves.clear();
 	audio.setBiome(Biome::Canopy);
 	fadeDir = -1.f;
 }
@@ -320,6 +322,7 @@ static int menuMove(const MenuInput& m, int sel, int n, Audio& audio) {
 }
 
 void Game::updateTitle(float dt, const MenuInput& m) {
+	spawnScreenLeaves(dt, 2.5f, 1.3f);
 	if (myWorld && myRenderer) {
 		myRenderer->update(*myWorld, dt, clock);
 		myWorld->events.clear();
@@ -449,6 +452,9 @@ void Game::updatePlaying(float dt, const MenuInput& m) {
 		return;
 	}
 	levelT += dt;
+	hudPop = std::max(0.f, hudPop - dt);
+	for (Popup& pu : popups) pu.t += dt;
+	popups.erase(std::remove_if(popups.begin(), popups.end(), [](const Popup& pu) { return pu.t > 1.4f; }), popups.end());
 	respawnFade = std::max(0.f, respawnFade - dt);
 	acc += dt;
 	int steps = 0;
@@ -468,6 +474,9 @@ void Game::updatePlaying(float dt, const MenuInput& m) {
 			if (e.type == Ev::Banana || e.type == Ev::Fig || e.type == Ev::Death || e.type == Ev::Checkpoint ||
 			    e.type == Ev::Respawn)
 				hudIdle = 0.f;
+			if (e.type == Ev::Banana || e.type == Ev::Fig) hudPop = 0.3f;
+			if (e.type == Ev::Checkpoint) popups.push_back({b2Vec2(e.x, e.y - 0.9f), 0.f, "Checkpoint!", ui::GoldCore});
+			if (e.type == Ev::Fig) popups.push_back({b2Vec2(e.x, e.y - 0.4f), 0.f, "Golden fig!", ui::GoldCore});
 			if (e.type == Ev::LevelComplete) {
 				completeT = 0.f;
 				onLevelComplete();
@@ -516,23 +525,26 @@ void Game::updateResults(float dt, const MenuInput& m) {
 	}
 }
 
-void Game::updateCredits(float dt, const MenuInput& m) {
-	// drifting leaves
-	if (creditLeaves.rnd(0.f, 1.f) < dt * 6.f) {
-		Particle& q = creditLeaves.spawn();
+void Game::spawnScreenLeaves(float dt, float perSecond, float sizeScale) {
+	if (screenLeaves.rnd(0.f, 1.f) < dt * perSecond) {
+		Particle& q = screenLeaves.spawn();
 		q.kind = PKind::Leaf;
-		q.pos = V2(creditLeaves.rnd(-50.f, 850.f), -20.f);
-		q.vel = V2(creditLeaves.rnd(10.f, 40.f), creditLeaves.rnd(30.f, 60.f));
+		q.pos = V2(screenLeaves.rnd(-50.f, 850.f), -20.f);
+		q.vel = V2(screenLeaves.rnd(10.f, 40.f), screenLeaves.rnd(30.f, 60.f));
 		q.wobble = 30.f;
-		q.phase = creditLeaves.rnd(0.f, 6.f);
-		q.spin = creditLeaves.rnd(-2.f, 2.f);
+		q.phase = screenLeaves.rnd(0.f, 6.f);
+		q.spin = screenLeaves.rnd(-2.f, 2.f);
 		q.maxLife = 16.f;
-		q.size = creditLeaves.rnd(6.f, 10.f);
-		q.color = creditLeaves.rnd(0.f, 1.f) < 0.8f ? sf::Color(0x6D, 0xBE, 0x45) : ui::GoldCore;
+		q.size = screenLeaves.rnd(6.f, 10.f) * sizeScale;
+		q.color = screenLeaves.rnd(0.f, 1.f) < 0.8f ? sf::Color(0x6D, 0xBE, 0x45) : ui::GoldCore;
 		q.shrink = false;
 		q.fadeIn = true;
 	}
-	creditLeaves.update(dt);
+	screenLeaves.update(dt);
+}
+
+void Game::updateCredits(float dt, const MenuInput& m) {
+	spawnScreenLeaves(dt, 6.f, 1.f);
 	if ((m.confirm || m.back) && screenT > 1.f) transition([this]() { goTitle(); }, 0.6f);
 	if (screenT > 38.f && fadeDir <= 0.f && !pending) transition([this]() { goTitle(); }, 1.f);
 }
@@ -587,6 +599,7 @@ void Game::render(sf::RenderTarget& t) {
 		drawScene(t, desat);
 		t.setView(ui);
 		drawSignBubble(t);
+		drawPopups(t);
 		drawHud(t);
 		// level title ribbon: slides in from the left for 1.8 s
 		if (levelT < 2.4f && myLevel) {
@@ -673,12 +686,18 @@ void Game::drawTitle(sf::RenderTarget& t) {
 	pip.setOrigin(32.f, 64.f);
 	pip.setPosition(std::round(leafC.x + 5.f), std::round(leafC.y - 6.f));
 	t.draw(pip);
+	// Pip is asleep on the leaf: little z's drift up and away
+	for (int k = 0; k < 3; ++k) {
+		float u = std::fmod(clock * 0.45f + k / 3.f, 1.f);
+		text(t, assets.bold, "z", 14 + 4 * k, V2(leafC.x + 60.f + u * 36.f + k * 10.f, leafC.y - 70.f - u * 60.f - k * 10.f),
+		     withAlpha(ui::Cream, static_cast<int>(230 * (1.f - u))), Left);
+	}
 
-	// title
+	// title, floating gently
 	const std::string title = "LEAFWIND";
 	sf::Text tt(title, assets.bold, 64);
 	sf::FloatRect b = tt.getLocalBounds();
-	V2 tp(400.f - b.width * 0.5f - b.left, 40.f);
+	V2 tp(400.f - b.width * 0.5f - b.left, 40.f + std::round(3.f * std::sin(clock * 0.9f)));
 	tt.setPosition(tp + V2(3.f, 5.f));
 	tt.setFillColor(sf::Color(0x2E, 0x24, 0x18, 170));
 	t.draw(tt);
@@ -705,6 +724,7 @@ void Game::drawTitle(sf::RenderTarget& t) {
 	drawMenu(t, items, titleSel, V2(520.f, 288.f), 28, ui::Cream, ui::Banana);
 	text(t, assets.regular, "Arrows / WASD to choose \xC2\xB7 Space to start", 16, V2(400.f, 566.f),
 	     withAlpha(ui::Cream, 220), Center);
+	screenLeaves.draw(t, assets.atlas);
 }
 
 void Game::drawSelect(sf::RenderTarget& t) {
@@ -852,18 +872,33 @@ void Game::drawHud(sf::RenderTarget& t) {
 	World& w = *myWorld;
 	float a = hudAlpha;
 	Canvas c;
-	c.roundRect(12.f, 12.f, 262.f, 42.f, 12.f, withAlpha(ui::Cream, static_cast<int>(200 * a)));
-	bananaIcon(c, V2(34.f, 34.f), 1.1f, a);
-	figIcon(c, V2(146.f, 34.f), 1.05f, w.fig, a);
-	skullLeafIcon(c, V2(190.f, 33.f), 1.f, a);
-	c.roundRect(700.f, 12.f, 88.f, 32.f, 10.f, withAlpha(ui::Cream, static_cast<int>(170 * a)));
+	c.roundRect(12.f, 12.f, 300.f, 50.f, 14.f, withAlpha(ui::Cream, static_cast<int>(200 * a)));
+	// the banana icon pops on every pickup
+	float pop = 1.f + 0.45f * std::max(0.f, hudPop / 0.3f);
+	bananaIcon(c, V2(38.f, 37.f), 1.5f * pop, a);
+	figIcon(c, V2(170.f, 37.f), 1.4f, w.fig, a);
+	skullLeafIcon(c, V2(220.f, 36.f), 1.35f, a);
+	c.roundRect(696.f, 12.f, 92.f, 36.f, 11.f, withAlpha(ui::Cream, static_cast<int>(170 * a)));
 	c.draw(t);
 	char buf[32];
 	std::snprintf(buf, sizeof(buf), "%d / %d", w.bananas, w.bananasTotal);
-	text(t, assets.bold, buf, 22, V2(50.f, 18.f), ui::Ink, Left, a);
+	text(t, assets.bold, buf, 24, V2(62.f, 20.f), ui::Ink, Left, a);
 	std::snprintf(buf, sizeof(buf), "%d", w.deaths);
-	text(t, assets.bold, buf, 22, V2(206.f, 18.f), ui::Ink, Left, a);
-	text(t, assets.regular, formatTime(w.levelTimer), 20, V2(744.f, 15.f), ui::Ink, Center, a);
+	text(t, assets.bold, buf, 24, V2(242.f, 20.f), ui::Ink, Left, a);
+	text(t, assets.regular, formatTime(w.levelTimer), 22, V2(742.f, 16.f), ui::Ink, Center, a);
+}
+
+void Game::drawPopups(sf::RenderTarget& t) {
+	if (!myRenderer) return;
+	for (const Popup& pu : popups) {
+		float u = pu.t / 1.4f;
+		float rise = 1.f - (1.f - u) * (1.f - u);
+		float a = u < 0.6f ? 1.f : 1.f - (u - 0.6f) / 0.4f;
+		float pop = pu.t < 0.15f ? 1.f + 0.4f * (1.f - pu.t / 0.15f) : 1.f;
+		V2 sp = myRenderer->toScreen(pu.at) - V2(0.f, 34.f * rise);
+		textShadow(t, assets.bold, pu.text, static_cast<unsigned>(20 * pop), sp, pu.col, sf::Color(0x2E, 0x24, 0x18, 200),
+		           V2(1.5f, 2.f), Center, a);
+	}
 }
 
 void Game::drawSignBubble(sf::RenderTarget& t) {
@@ -977,7 +1012,7 @@ void Game::drawCredits(sf::RenderTarget& t) {
 	Canvas bg;
 	bg.rectV(0, 0, 800, 600, sf::Color(0x20, 0x55, 0x3C), sf::Color(0x0F, 0x2A, 0x20));
 	bg.draw(t);
-	creditLeaves.draw(t, assets.atlas);
+	screenLeaves.draw(t, assets.atlas);
 	struct Line {
 		const char* s;
 		unsigned size;
