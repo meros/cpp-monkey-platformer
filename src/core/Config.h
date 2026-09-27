@@ -13,6 +13,12 @@ constexpr int POS_ITERS = 3;
 constexpr int MAX_STEPS_PER_FRAME = 4;
 constexpr float VIEW_W = 800.f;
 constexpr float VIEW_H = 600.f;
+// The playfield is drawn magnified: 40 px tiles at 1.2x show 16.7 x 12.5 tiles instead of
+// 20 x 15, so Pip and the hazards read larger on screen. Physics and level metrics are
+// untouched (polish pass, see DESIGN.md 10.4).
+constexpr float VIEW_ZOOM = 1.2f;
+constexpr float WORLD_VIEW_W = VIEW_W / VIEW_ZOOM;
+constexpr float WORLD_VIEW_H = VIEW_H / VIEW_ZOOM;
 
 // Player collider
 constexpr float PLAYER_W = 0.40f;

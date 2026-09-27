@@ -66,7 +66,7 @@ void tree(Canvas& c, Rng& r, float x, float base, float h, sf::Color col, sf::Co
 	}
 	int n = r.i(3, 5);
 	for (int i = 0; i < n; ++i) {
-		float rr = r(60.f, 110.f) * (h / 320.f);
+		float rr = r(50.f, 92.f) * (h / 320.f);
 		V2 p = top + V2(r(-1.f, 1.f) * rr * 0.9f, r(-0.6f, 0.4f) * rr);
 		c.circle(p, rr, col);
 		c.circle(p + V2(-rr * 0.18f, -rr * 0.2f), rr * 0.7f, hi);
@@ -117,10 +117,12 @@ void Background::build(Biome biome, float W, float H, int seed) {
 	for (int layer = 0; layer < 2; ++layer) {
 		Canvas& c = layer == 0 ? farBack : farFront;
 		float x0 = -400.f, x1 = W * F_FAR + 1200.f;
-		sf::Color col = lerp(pal.far, pal.fog, layer == 0 ? 0.55f : 0.25f);
-		col.a = 200;
-		sf::Color colB = lerp(col, pal.fog, 0.5f);
-		colB.a = 200;
+		// Atmospheric perspective: the far ridges sit deep in the fog so the mid trees and the
+		// playfield each read as their own plane.
+		sf::Color col = lerp(pal.far, pal.fog, layer == 0 ? 0.68f : 0.45f);
+		col.a = 220;
+		sf::Color colB = lerp(col, pal.fog, 0.55f);
+		colB.a = 220;
 		float baseY = layer == 0 ? 290.f : 350.f;
 		float amp = peaks ? 110.f : 60.f;
 		Ridge rd(r, 1.f / 180.f);
@@ -163,9 +165,12 @@ void Background::build(Biome biome, float W, float H, int seed) {
 	// ---- mid: tree silhouettes ----
 	{
 		float x0 = -400.f, x1 = W * F_MID + 1200.f;
-		sf::Color col = lerp(pal.mid, pal.fog, 0.12f);
-		sf::Color hi = lerp(col, pal.grassLight, 0.12f);
-		sf::Color groundTop = col, groundBot = lerp(col, pal.fog, 0.35f);
+		// Mid trees are silhouettes behind haze: well toward the fog colour, with a soft lighter
+		// top on each canopy blob (not a saturated highlight) so they never compete with the
+		// terrain in front of them.
+		sf::Color col = lerp(pal.mid, pal.fog, 0.42f);
+		sf::Color hi = lerp(col, pal.fog, 0.2f);
+		sf::Color groundTop = col, groundBot = lerp(col, pal.fog, 0.4f);
 		const float base = 470.f;
 		int trees = std::max(8, static_cast<int>(W / 40.f / 4.f)); // 1 tree per 4 tiles of level width
 		float spacing = (x1 - x0) / trees;
@@ -202,8 +207,8 @@ void Background::build(Biome biome, float W, float H, int seed) {
 	// ---- near: trunks, hanging vines, leaf clusters ----
 	{
 		float x0 = -400.f, x1 = W * F_NEAR + 1200.f;
-		sf::Color col = pal.near;
-		sf::Color colLeaf = lerp(pal.near, pal.mid, 0.25f);
+		sf::Color col = lerp(pal.near, pal.fog, 0.12f);
+		sf::Color colLeaf = lerp(col, pal.mid, 0.3f);
 		const float base = 560.f;
 		for (float x = x0; x < x1; x += r(260.f, 620.f)) {
 			if (biome == Biome::Cliffs || biome == Biome::Storm || biome == Biome::Gully) {
@@ -329,20 +334,26 @@ void Background::drawSky(sf::RenderTarget& t, V2 cam, float time, float flash) c
 float Background::W_WRAP() const { return std::max(1400.f, levelW * 0.08f + 1400.f); }
 
 void Background::drawLayers(sf::RenderTarget& t, V2 cam, float) const {
+	// A fog wash after each plane (heavier the further back) gives the parallax real depth
+	// separation; the playfield in front stays crisp and full-value.
+	auto wash = [&](int aTop, int aBot) {
+		Canvas haze;
+		haze.rectV(0.f, 0.f, 800.f, 600.f, withAlpha(pal.fog, aTop), withAlpha(pal.fog, aBot));
+		haze.draw(t);
+	};
 	sf::RenderStates st;
 	st.transform.translate(-cam.x * F_FAR + 400.f, yOffset(cam, F_FAR));
 	farBack.draw(t, st);
 	farFront.draw(t, st);
+	wash(30, 60);
 	st = sf::RenderStates();
 	st.transform.translate(-cam.x * F_MID + 400.f, yOffset(cam, F_MID));
 	mid.draw(t, st);
+	wash(22, 44);
 	st = sf::RenderStates();
 	st.transform.translate(-cam.x * F_NEAR + 400.f, yOffset(cam, F_NEAR));
 	nearL.draw(t, st);
-	// haze over the background so the playfield pops
-	Canvas haze;
-	haze.rectV(0.f, 0.f, 800.f, 600.f, withAlpha(pal.fog, 0), withAlpha(pal.fog, 40));
-	haze.draw(t);
+	wash(0, 22);
 }
 
 void Background::drawShafts(sf::RenderTarget& t, V2 cam, float time) const {

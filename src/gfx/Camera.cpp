@@ -9,9 +9,9 @@
 using namespace cfg;
 
 V2 Camera::clampC(V2 c) const {
-	float hw = VIEW_W * 0.5f, hh = VIEW_H * 0.5f;
-	c.x = levelW <= VIEW_W ? levelW * 0.5f : std::clamp(c.x, hw, levelW - hw);
-	c.y = levelH <= VIEW_H ? levelH * 0.5f : std::clamp(c.y, hh, levelH - hh);
+	float hw = WORLD_VIEW_W * 0.5f, hh = WORLD_VIEW_H * 0.5f;
+	c.x = levelW <= WORLD_VIEW_W ? levelW * 0.5f : std::clamp(c.x, hw, levelW - hw);
+	c.y = levelH <= WORLD_VIEW_H ? levelH * 0.5f : std::clamp(c.y, hh, levelH - hh);
 	return c;
 }
 
@@ -42,7 +42,7 @@ void Camera::update(const World& w, float dt) {
 		pos.y += (goal - pos.y) * (1.f - std::exp(-6.f * dt));
 	}
 	// falling fast: never let Pip leave the view
-	float maxOff = VIEW_H * 0.5f - 60.f;
+	float maxOff = WORLD_VIEW_H * 0.5f - 60.f;
 	pos.y = std::clamp(pos.y, p.y * PPM - maxOff, p.y * PPM + maxOff);
 	pos = clampC(pos);
 
@@ -72,10 +72,10 @@ sf::View Camera::view() const {
 	// round to whole pixels so the sprite and tiles stay crisp
 	c.x = std::round(c.x);
 	c.y = std::round(c.y);
-	return sf::View(c, V2(VIEW_W, VIEW_H));
+	return sf::View(c, V2(WORLD_VIEW_W, WORLD_VIEW_H));
 }
 
 sf::FloatRect Camera::rect() const {
 	V2 c = center();
-	return sf::FloatRect(c.x - VIEW_W * 0.5f, c.y - VIEW_H * 0.5f, VIEW_W, VIEW_H);
+	return sf::FloatRect(c.x - WORLD_VIEW_W * 0.5f, c.y - WORLD_VIEW_H * 0.5f, WORLD_VIEW_W, WORLD_VIEW_H);
 }

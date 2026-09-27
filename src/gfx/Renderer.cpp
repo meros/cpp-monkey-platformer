@@ -14,7 +14,7 @@ inline V2 px(b2Vec2 m) { return V2(m.x * PPM, m.y * PPM); }
 
 V2 Renderer::toScreen(b2Vec2 m) const {
 	V2 c = cam.center();
-	return V2(m.x * PPM - c.x + VIEW_W * 0.5f, m.y * PPM - c.y + VIEW_H * 0.5f);
+	return V2((m.x * PPM - c.x) * VIEW_ZOOM + VIEW_W * 0.5f, (m.y * PPM - c.y) * VIEW_ZOOM + VIEW_H * 0.5f);
 }
 
 void Renderer::setLevel(const LevelData& L, int seed) {

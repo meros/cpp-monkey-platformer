@@ -36,7 +36,7 @@ private:
 	const Assets* myAssets = nullptr;
 	Palette pal;
 	Biome biome = Biome::Canopy;
-	Canvas fill, detail;
+	Canvas outline, fill, detail;
 	std::vector<Blade> blades;  // sorted by x
 	std::vector<Root> roots;    // sorted by a.x
 	std::vector<V2> moss;       // glowing dots (hollow)

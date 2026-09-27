@@ -1,5 +1,7 @@
 #include "TerrainRenderer.h"
 
+#include "core/Config.h"
+
 #include <algorithm>
 #include <cmath>
 #include <queue>
@@ -36,12 +38,15 @@ void TerrainRenderer::build(const LevelData& L, const Assets& assets, int seed) 
 			c.rt = std::make_unique<sf::RenderTexture>();
 			int w = std::min(CH, static_cast<int>(levelW) - cx);
 			int h = std::min(CH, static_cast<int>(levelH) - cy);
-			if (!c.rt->create(w, h)) continue;
+			// baked at the on-screen magnification so the zoomed view stays crisp
+			const float Z = cfg::VIEW_ZOOM;
+			if (!c.rt->create(static_cast<unsigned>(std::ceil(w * Z)), static_cast<unsigned>(std::ceil(h * Z)))) continue;
 			c.pos = V2(static_cast<float>(cx), static_cast<float>(cy));
 			sf::RenderTexture& rt = *c.rt;
 			rt.setView(sf::View(sf::FloatRect(static_cast<float>(cx), static_cast<float>(cy), static_cast<float>(w),
 			                                  static_cast<float>(h))));
 			rt.clear(sf::Color::Transparent);
+			outline.draw(rt);
 			fill.draw(rt);
 			// textured earth: multiply a world-space tileable noise over the fill
 			sf::VertexArray q(sf::Quads, 4);
@@ -63,12 +68,14 @@ void TerrainRenderer::build(const LevelData& L, const Assets& assets, int seed) 
 		}
 	}
 	// geometry no longer needed once baked
+	outline.clear();
 	fill.clear();
 	detail.clear();
 }
 
 void TerrainRenderer::buildGeometry(const LevelData& L, int seed) {
 	Rng r(static_cast<unsigned>(seed) * 104729u + 7u);
+	outline.clear();
 	fill.clear();
 	detail.clear();
 	blades.clear();
@@ -117,7 +124,7 @@ void TerrainRenderer::buildGeometry(const LevelData& L, int seed) {
 	auto vDepth = [&](int vx, int vy) { // grid vertex
 		return (dAt(vx - 1, vy - 1) + dAt(vx, vy - 1) + dAt(vx - 1, vy) + dAt(vx, vy)) * 0.25f;
 	};
-	sf::Color topLit = lerp(pal.earth, pal.grassLight, 0.16f);
+	sf::Color topLit = lerp(pal.earth, pal.grassLight, 0.22f);
 	auto shade = [&](float d) {
 		if (d < 1.f) return lerp(topLit, pal.earth, d);
 		return lerp(pal.earth, pal.earthDark, std::min(1.f, (d - 1.f) / 6.f) * 0.65f);
@@ -129,6 +136,43 @@ void TerrainRenderer::buildGeometry(const LevelData& L, int seed) {
 	const float capH = dry ? 10.f : 14.f;
 	sf::Color capCol = dry ? lerp(pal.grass, DRY, 0.25f) : (hollow ? lerp(pal.grass, pal.earthDark, 0.25f) : pal.grass);
 	sf::Color capHi = dry ? lerp(pal.grassLight, DRY, 0.3f) : pal.grassLight;
+
+	// ---- outline: every solid shape expanded by O px in a deep earth tone. Drawn under the
+	// fill, so only the silhouette edge shows: a crisp dark rim that separates the playfield
+	// from the fogged background (the interior overlap is covered by the fill).
+	{
+		const float O = 2.5f;
+		sf::Color rim = lerp(pal.earthDark, sf::Color::Black, 0.45f);
+		for (int y = 0; y < H; ++y) {
+			for (int x = 0; x < W; ++x) {
+				char c = L.at(x, y);
+				float x0 = x * T, y0 = y * T, x1 = x0 + T, y1 = y0 + T;
+				if (c == '/') outline.tri(V2(x0 - O, y1 + O), V2(x1 + O, y1 + O), V2(x1 + O, y0 - O * 1.5f), rim);
+				else if (c == '\\') outline.tri(V2(x0 - O, y1 + O), V2(x1 + O, y1 + O), V2(x0 - O, y0 - O * 1.5f), rim);
+				if (c != '#') continue;
+				bool tl = !fillish(x - 1, y) && !fillish(x, y - 1) && !fillish(x - 1, y - 1);
+				bool tr = !fillish(x + 1, y) && !fillish(x, y - 1) && !fillish(x + 1, y - 1);
+				bool br = !fillish(x + 1, y) && !fillish(x, y + 1) && !fillish(x + 1, y + 1);
+				bool bl = !fillish(x - 1, y) && !fillish(x, y + 1) && !fillish(x - 1, y + 1);
+				std::vector<V2> pts;
+				auto corner = [&](bool round, V2 pt, V2 ctr, float a0) {
+					if (!round) {
+						pts.push_back(pt);
+						return;
+					}
+					for (int i = 0; i <= 4; ++i) {
+						float a = a0 + PI * 0.5f * i / 4.f;
+						pts.push_back(ctr + V2(std::cos(a), std::sin(a)) * (R + O));
+					}
+				};
+				corner(tl, V2(x0 - O, y0 - O), V2(x0 + R, y0 + R), PI);
+				corner(tr, V2(x1 + O, y0 - O), V2(x1 - R, y0 + R), PI * 1.5f);
+				corner(br, V2(x1 + O, y1 + O), V2(x1 - R, y1 - R), 0.f);
+				corner(bl, V2(x0 - O, y1 + O), V2(x0 + R, y1 - R), PI * 0.5f);
+				outline.polygon(pts, rim);
+			}
+		}
+	}
 
 	// ---- fill: rounded tiles with depth shading ----
 	for (int y = 0; y < H; ++y) {
@@ -390,10 +434,11 @@ void TerrainRenderer::buildGeometry(const LevelData& L, int seed) {
 
 void TerrainRenderer::drawStatic(sf::RenderTarget& t, const sf::FloatRect& view) const {
 	for (const Chunk& c : chunks) {
-		sf::FloatRect r(c.pos.x, c.pos.y, static_cast<float>(c.rt->getSize().x), static_cast<float>(c.rt->getSize().y));
+		sf::FloatRect r(c.pos.x, c.pos.y, c.rt->getSize().x / cfg::VIEW_ZOOM, c.rt->getSize().y / cfg::VIEW_ZOOM);
 		if (!r.intersects(view)) continue;
 		sf::Sprite s(c.rt->getTexture());
 		s.setPosition(c.pos);
+		s.setScale(r.width / c.rt->getSize().x, r.height / c.rt->getSize().y);
 		t.draw(s);
 	}
 }
