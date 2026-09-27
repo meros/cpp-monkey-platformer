@@ -315,7 +315,15 @@ void Player::preStep(World& world, const Input& in, float dt) {
 
 	// --- vine ---
 	if (state == PState::Air && !grounded) tryGrabRope(world);
-	if (state != PState::Rope && ignoredRope && ropeCooldown <= 0.f) tryGrabRope(world); // clears ignore
+	else if (state != PState::Rope && ignoredRope) {
+		// forget the just-released vine once Pip no longer overlaps it
+		bool overlap = false;
+		for (b2Body* sg : ignoredRope->segs) {
+			b2Vec2 d = sg->GetPosition() - p;
+			if (std::fabs(d.x) < PLAYER_W * 0.5f + 0.06f && std::fabs(d.y) < PLAYER_H * 0.5f + 0.1f) overlap = true;
+		}
+		if (!overlap) ignoredRope = nullptr;
+	}
 
 	switch (state) {
 	case PState::Rope: {

@@ -58,6 +58,14 @@ public:
 				if (l->state != FallLog::Hanging)
 					std::printf("            log x=%.2f y=%.2f vy=%.2f st=%d\n", l->body->GetPosition().x / cfg::TILE,
 					            l->body->GetPosition().y / cfg::TILE, l->body->GetLinearVelocity().y, static_cast<int>(l->state));
+			if (std::getenv("ROUTE_TRACE_ROPE"))
+				for (auto& r : w->ropes) {
+					b2Vec2 a = r->anchor;
+					if (std::fabs(a.x / cfg::TILE - tx()) > 6.f) continue;
+					b2Vec2 l = r->segs.back()->GetPosition();
+					std::printf("            rope anchor x=%.2f bottom seg (%.2f, %.2f) ignored=%d\n", a.x / cfg::TILE, l.x / cfg::TILE,
+					            l.y / cfg::TILE, p().ignoredRope == r.get());
+				}
 			for (auto& bo : w->boulders)
 				if (bo->alive)
 					std::printf("            boulder x=%.2f y=%.2f v=(%.2f,%.2f)\n", bo->body->GetPosition().x / cfg::TILE,

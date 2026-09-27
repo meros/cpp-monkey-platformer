@@ -343,12 +343,56 @@ bool level10(RouteBot& b) {
 	return b.ok;
 }
 
+// Secrets that lean on physics (the rest are plain jumps/dives).
+bool secret7(RouteBot& b) {
+	// from the top plateau, leap left into the tailwind band, land on the crumbling ledge with the
+	// fig, drop 22 tiles into updraft 1 and survive
+	b.w->placePlayer(74.f * cfg::TILE, 9.f * cfg::TILE - 0.3f); // just left of the exit
+	b.idle(30);
+	b.until("run-up", 300, [&] { return RouteBot::hold(-1); }, [&] { return b.tx() < 71.6f; });
+	int f7 = 0;
+	b.until("tailwind leap", 300, [&] {
+		// running jump left into the band; ease off so the wind drops us on the ledge
+		Input in = RouteBot::hold(b.tx() > 65.5f ? -1 : (b.tx() < 62.2f ? 1 : 0), f7 < 20);
+		in.jumpPressed = f7++ == 0;
+		return in;
+	}, [&] { return b.w->fig && b.grounded(); });
+	b.until("drop into updraft 1", 900, [&] { return RouteBot::hold(0); },
+	        [&] { return b.grounded() && b.feet() > 30.f; });
+	return b.ok && b.w->fig;
+}
+
+bool secret2(RouteBot& b) {
+	// middle ravine vine: slide down to its bottom, drop onto the hidden pillar, climb back up
+	b.w->placePlayer(80.f * cfg::TILE, 17.f * cfg::TILE - 0.3f);
+	b.idle(20);
+	b.walkTo(78.f);
+	b.jumpAt(80.2f, 1, 20, 1, [&] { return b.onRope(); });
+	b.swingRelease(1, 0.5f, [&] { return b.onRope() && b.tx() > 90.f; });
+	b.climbTo(static_cast<int>(b.p().rope->segs.size()) - 1);
+	b.until("drop onto the pillar", 600, [&] {
+		// pump the swing, let go (Down) when swinging right over the pillar
+		if (b.p().state != PState::Rope) return RouteBot::hold(0);
+		bool over = b.tx() > 94.6f && b.p().vel().x > 0.f;
+		return RouteBot::hold(b.p().vel().x >= 0.f ? 1 : -1, false, false, over);
+	}, [&] { return b.grounded() && b.w->fig; });
+	b.idle(120); // let the vine settle
+	int f = 0;
+	b.until("back onto the vine", 300, [&] {
+		Input in = RouteBot::hold(b.tx() > 93.6f ? -1 : 0, true);
+		in.jumpPressed = f++ == 0;
+		return in;
+	}, [&] { return b.onRope(); });
+	return b.ok && b.w->fig;
+}
+
 struct Route {
 	int level;
 	bool (*fn)(RouteBot&);
 };
 
 const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}, {9, level9}, {10, level10}};
+const Route kSecrets[] = {{2, secret2}, {7, secret7}};
 
 } // namespace
 
@@ -372,6 +416,16 @@ int main(int argc, char** argv) {
 		char name[32];
 		std::snprintf(name, sizeof(name), "level %02d", r.level);
 		b.report(name);
+	}
+	for (const Route& r : kSecrets) {
+		if (only && r.level != only) continue;
+		std::printf("[level %d secret]\n", r.level);
+		RouteBot b(r.level, verbose);
+		if (!r.fn(b)) {
+			if (b.ok) b.fail("secret not collected");
+			++fails;
+		}
+		b.ok ? std::printf("    golden fig collected\n") : std::printf("    FAILED: %s\n", b.failure.c_str());
 	}
 	if (fails) {
 		std::printf("%d route(s) FAILED\n", fails);
