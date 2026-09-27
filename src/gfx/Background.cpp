@@ -296,17 +296,22 @@ void Background::drawSky(sf::RenderTarget& t, V2 cam, float time, float flash) c
 		float x = cl.pos.x - cam.x * 0.08f + std::fmod(time * 6.f, 4000.f) * 0.2f;
 		x = std::fmod(x + 600.f, W_WRAP()) - 300.f;
 		V2 p(x, cl.pos.y + yOffset(cam, 0.08f));
-		sf::Color cc = withAlpha(lerp(pal.skyBot, sf::Color::White, 0.55f), 120);
-		sf::Color sh = withAlpha(lerp(pal.skyBot, pal.skyTop, 0.5f), 90);
-		for (int k = 0; k < 5; ++k) {
-			float kx = (k - 2) * cl.w * 0.28f;
-			float rr = cl.w * (0.28f + 0.1f * std::sin(cl.seed + k * 1.7f));
-			c.circle(p + V2(kx, 8.f), rr * 0.9f, sh, 20);
+		bool storm = myBiome == Biome::Storm;
+		sf::Color cc = storm ? sf::Color(0x6A, 0x74, 0x88, 150) : withAlpha(lerp(pal.skyBot, sf::Color::White, 0.6f), 150);
+		sf::Color sh = storm ? sf::Color(0x2A, 0x30, 0x40, 120) : withAlpha(lerp(pal.skyBot, pal.skyTop, 0.55f), 110);
+		// soft painterly puffs: a shadowed underside, then lit tops, all with feathered edges
+		for (int k = 0; k < 6; ++k) {
+			float kx = (k - 2.5f) * cl.w * 0.24f;
+			float rr = cl.w * (0.3f + 0.1f * std::sin(cl.seed + k * 1.7f));
+			c.circleGrad(p + V2(kx, rr * 0.25f), rr * 1.05f, sh, withAlpha(sh, 0), 24);
 		}
-		for (int k = 0; k < 5; ++k) {
-			float kx = (k - 2) * cl.w * 0.28f;
-			float rr = cl.w * (0.28f + 0.1f * std::sin(cl.seed + k * 1.7f));
-			c.circle(p + V2(kx, -rr * 0.3f), rr, cc, 20);
+		for (int k = 0; k < 6; ++k) {
+			float kx = (k - 2.5f) * cl.w * 0.24f;
+			float rr = cl.w * (0.3f + 0.1f * std::sin(cl.seed + k * 1.7f));
+			V2 q = p + V2(kx, -rr * 0.35f * std::fabs(std::cos(k * 0.9f + cl.seed)));
+			c.circleGrad(q, rr, cc, withAlpha(cc, 0), 24);
+			c.circleGrad(q + V2(-rr * 0.2f, -rr * 0.2f), rr * 0.55f, withAlpha(lerp(cc, sf::Color::White, 0.3f), cc.a),
+			             withAlpha(cc, 0), 20);
 		}
 	}
 	if (myBiome == Biome::Storm) {

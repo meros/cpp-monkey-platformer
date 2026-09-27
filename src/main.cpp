@@ -7,6 +7,7 @@
 //   monkey_game --screenshot <what> <frames> <out.png> [--place <tx> <ty>]
 //        <what>: a level number 1-10, title, select, credits, card:prologue, card:<N>,
 //                card:out<N>, card:epilogue, card:bonus, pause:<N>, results:<N>
+//   monkey_game --flow-test                  drive menus/cards/levels with synthetic keys
 //   --mute                                   no audio device use at all
 #include "audio/Audio.h"
 #include "core/Config.h"
@@ -118,6 +119,102 @@ static int runScreenshot(const std::string& what, int frames, const std::string&
 	return 0;
 }
 
+// Drives the real Game (menus, cards, play, pause, results) with synthetic key presses.
+static int runFlowTest() {
+	sf::RenderWindow win(sf::VideoMode(800, 600), "Leafwind flow test", sf::Style::Titlebar | sf::Style::Close);
+	Assets assets;
+	if (!assets.load()) return 1;
+	Audio audio(false);
+	SaveData save;
+	std::string savePath = std::string(std::getenv("TMPDIR") ? std::getenv("TMPDIR") : "/tmp") + "/leafwind-flow-test-save.txt";
+	std::remove(savePath.c_str());
+	save.setPath(savePath);
+	Game game(assets, audio, save, true);
+	game.deterministic = true;
+	game.setFocused(false);
+	sf::RenderTexture frame;
+	frame.create(800, 600);
+	int fails = 0;
+	auto run = [&](int n) {
+		for (int i = 0; i < n; ++i) {
+			sf::Event e;
+			while (win.pollEvent(e)) {
+			}
+			game.update(cfg::DT);
+			if (i % 10 == 0) {
+				frame.clear();
+				game.render(frame);
+				frame.display();
+			}
+		}
+	};
+	auto press = [&](sf::Keyboard::Key k, int after = 20) {
+		sf::Event e;
+		e.type = sf::Event::KeyPressed;
+		e.key.code = k;
+		e.key.alt = e.key.control = e.key.shift = e.key.system = false;
+		game.handleEvent(e);
+		run(after);
+	};
+	auto expect = [&](Screen s, const char* what) {
+		bool ok = game.screen() == s;
+		std::printf("  %s %s\n", ok ? "ok  " : "FAIL", what);
+		if (!ok) ++fails;
+	};
+	game.goTitle();
+	run(60);
+	expect(Screen::Title, "title screen");
+	press(sf::Keyboard::Space, 60); // New Game (selected without a save)
+	expect(Screen::Cards, "prologue card");
+	press(sf::Keyboard::Space, 60);
+	expect(Screen::Cards, "level 1 intro card");
+	press(sf::Keyboard::Space, 60);
+	expect(Screen::Playing, "level 1 playing");
+	press(sf::Keyboard::Escape, 10);
+	press(sf::Keyboard::Down, 5);
+	press(sf::Keyboard::Down, 5);
+	press(sf::Keyboard::Down, 5);
+	press(sf::Keyboard::Space, 60); // Level select
+	expect(Screen::LevelSelect, "pause -> level select");
+	press(sf::Keyboard::Escape, 60);
+	expect(Screen::Title, "level select -> title");
+	// complete level 1: start it, put Pip at the exit
+	game.goLevelSelect(1);
+	run(10);
+	press(sf::Keyboard::Space, 60);
+	expect(Screen::Cards, "level 1 intro card from select");
+	press(sf::Keyboard::Escape, 60);
+	expect(Screen::Playing, "cards skipped with Esc");
+	World* w = game.world();
+	if (w) w->placePlayer(w->exitX * cfg::TILE + 0.25f, (w->exitY + 1) * cfg::TILE - 0.3f);
+	for (int i = 0; i < 90 && w && !w->complete; ++i) {
+		sf::Event e;
+		while (win.pollEvent(e)) {
+		}
+		game.update(cfg::DT);
+	}
+	bool completed = w && w->complete;
+	std::printf("  %s level completion\n", completed ? "ok  " : "FAIL");
+	if (!completed) ++fails;
+	run(150);
+	expect(Screen::Cards, "outro card");
+	press(sf::Keyboard::Space, 60);
+	expect(Screen::Results, "results screen");
+	press(sf::Keyboard::Space, 60); // Next level
+	expect(Screen::Cards, "level 2 intro card");
+	press(sf::Keyboard::Space, 60);
+	expect(Screen::Playing, "level 2 playing");
+	bool unlocked = save.levels[2].unlocked && save.levels[1].done;
+	SaveData reread;
+	reread.setPath(savePath);
+	bool persisted = reread.load() && reread.levels[1].done && reread.levels[2].unlocked;
+	std::printf("  %s progress saved and reloaded\n", unlocked && persisted ? "ok  " : "FAIL");
+	if (!(unlocked && persisted)) ++fails;
+	std::remove(savePath.c_str());
+	std::printf(fails ? "flow test FAILED (%d)\n" : "flow test passed\n", fails);
+	return fails ? 1 : 0;
+}
+
 static int runGame(int playLevel, bool mute) {
 	sf::RenderWindow win(sf::VideoMode(800, 600), "Leafwind");
 	win.setFramerateLimit(60);
@@ -170,6 +267,7 @@ int main(int argc, char** argv) {
 	for (int i = 1; i < argc; ++i) {
 		std::string a = argv[i];
 		if (a == "--validate-levels") return runValidateLevels();
+		if (a == "--flow-test") return runFlowTest();
 		if (a == "--test-physics") {
 			int lvl = (i + 1 < argc && std::isdigit(static_cast<unsigned char>(argv[i + 1][0]))) ? std::atoi(argv[i + 1]) : 0;
 			return runPhysicsTest(lvl);
