@@ -205,7 +205,7 @@ bool level8(RouteBot& b) {
 	auto mover = [&](int i) { return b.w->movers[i]->body; };
 	// lily pads across pool 1
 	b.stopAt(20.3f);
-	b.hopOnto(mover(0), 1, 2.f, 5.f);
+	b.hopOnto(mover(0), 1, 2.f, 5.5f);
 	b.ride([&] { return b.w->movers[0]->body->GetLinearVelocity().x == 0.f && b.tx() > 30.f; });
 	b.hopOnto(mover(1), 1, 2.f, 6.6f);
 	b.ride([&] { return b.tx() > 45.5f; });
@@ -288,12 +288,67 @@ bool level9(RouteBot& b) {
 	return b.ok;
 }
 
+bool level10(RouteBot& b) {
+	// Stage 1: mushroom, three branches, a vine, the left branch, hollow 1
+	b.stopAt(12.8f);
+	b.bounce(14.f, true, 14.f, [&] { return b.grounded() && b.feet() < 52.5f; });
+	b.stopAt(15.6f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 49.5f; });
+	b.stopAt(20.6f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 46.5f; });
+	b.stopAt(25.5f);
+	b.jumpAt(NAN, 1, 20, 1, [&] { return b.onRope(); });
+	b.swingRelease(1, 0.5f, [&] { return b.grounded() && b.tx() > 38.5f; });
+	b.passBeetles(79.f, 1500);                                 // through hollow 1
+	// Stage 2: bridge, three crumbles up the outer wall, the pad back left
+	b.walkTo(99.5f);
+	b.stopAt(100.4f);
+	int cf = 0;
+	b.until("crumbles up the wall", 900, [&] {
+		Input in = RouteBot::hold(1, true);
+		++cf;
+		in.jumpPressed = b.grounded() && (cf < 3 || b.onKind(Kind::Crumble));
+		return in;
+	}, [&] { return b.grounded() && b.feet() < 35.5f && b.tx() > 113.f; });
+	b.stopAt(113.5f);
+	b.hopOnto(b.w->movers[0]->body, -1, 0.5f, 3.5f, 2.5f);
+	b.ride([&] { return b.w->movers[0]->body->GetPosition().x / cfg::TILE < 81.6f; }, 2400);
+	b.until("off the pad", 200, [&] { return RouteBot::hold(-1); }, [&] { return b.grounded() && b.tx() < 79.3f && !b.onKind(Kind::Mover); });
+	b.passBeetles(40.f, 1500, -1);                             // through hollow 2
+	// Stage 3: vine, branch, vine, wall ledge, crumbles, branch, pad, trunk top
+	b.stopAt(38.8f);
+	b.jumpAt(NAN, -1, 20, -1, [&] { return b.onRope(); });
+	b.climbTo(8);
+	b.swingRelease(-1, 0.5f, [&] { return b.grounded() && b.feet() < 27.5f; });
+	b.stopAt(26.6f);
+	b.jumpAt(NAN, -1, 20, -1, [&] { return b.onRope(); });
+	b.climbTo(10);
+	b.swingRelease(-1, 0.5f, [&] { return b.grounded() && b.tx() < 15.f && b.feet() < 22.5f; });
+	b.stopAt(12.f);
+	b.jumpAt(8.9f, -1, 40, -1, [&] { return b.grounded() && b.feet() < 19.5f; });  // crumble A (+3)
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 16.5f; });    // crumble B (+3)
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 13.5f; });    // branch (+3)
+	b.stopAt(14.5f);
+	b.hopOnto(b.w->movers[1]->body, 1, 1.f, 3.5f, 1.5f);
+	b.ride([&] { return b.tx() > 26.5f; });
+	b.until("onto the big branch", 200, [&] {
+		Input in = RouteBot::hold(1, true);
+		in.jumpPressed = b.grounded() && b.onKind(Kind::Mover);
+		return in;
+	}, [&] { return b.grounded() && b.tx() > 30.5f && !b.onKind(Kind::Mover); });
+	b.passBeetles(52.5f);
+	b.stopAt(52.8f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 9.5f; });     // trunk top
+	b.until("the golden leaf", 600, [&] { return RouteBot::hold(1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
 struct Route {
 	int level;
 	bool (*fn)(RouteBot&);
 };
 
-const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}, {9, level9}};
+const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}, {9, level9}, {10, level10}};
 
 } // namespace
 

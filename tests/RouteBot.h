@@ -110,7 +110,13 @@ public:
 	// Walk to x and come to rest there.
 	bool stopAt(float x) {
 		if (!walkTo(x)) return false;
-		return until("settle", 120, [&] { return hold(0); }, [&] { return std::fabs(p().vel().x) < 0.05f && grounded(); });
+		// hold position (wind can drift an idle Pip)
+		return until("settle", 240,
+		             [&] {
+			             float d = x - tx();
+			             return hold(d > 0.12f ? 1 : (d < -0.12f ? -1 : 0));
+		             },
+		             [&] { return std::fabs(p().vel().x) < 0.3f && std::fabs(x - tx()) < 0.2f && grounded(); });
 	}
 	// Run toward dir, press jump when the centre crosses x (or immediately if x is NaN), hold jump
 	// for holdF frames, keep steering airDir until the landing condition.
@@ -249,18 +255,18 @@ public:
 			             return grounded() && tx() > targetX && p().groundBody && p().groundBody->GetType() == b2_staticBody;
 		             });
 	}
-	// Walk right to x; hop over (or onto) beetles that come near on the way.
-	bool passBeetles(float x, int maxF = 1200) {
+	// Walk toward x (right if dir=1, left if -1); hop over (or onto) beetles that come near.
+	bool passBeetles(float x, int maxF = 1200, int dir = 1) {
 		int air = 0;
 		return until("pass beetles", maxF,
 		             [&] {
-			             Input in = hold(1);
+			             Input in = hold(dir);
 			             if (grounded()) {
 				             air = 0;
 				             for (auto& be : w->beetles) {
 					             if (be->dead || !be->body) continue;
 					             b2Vec2 bp = be->body->GetPosition();
-					             float dx = bp.x / cfg::TILE - tx(), dy = bp.y / cfg::TILE - (feet() - 0.3f);
+					             float dx = (bp.x / cfg::TILE - tx()) * dir, dy = bp.y / cfg::TILE - (feet() - 0.3f);
 					             if (dx > 0.6f && dx < 3.2f && std::fabs(dy) < 0.8f) {
 						             in.jumpPressed = true;
 						             in.jumpHeld = true;
@@ -271,7 +277,7 @@ public:
 			             }
 			             return in;
 		             },
-		             [&] { return grounded() && tx() >= x; });
+		             [&] { return grounded() && (tx() - x) * dir >= 0.f; });
 	}
 	// From the ground (or a ledge) next to a mushroom at tile column mushX: hop onto its cap,
 	// holding Space for the big bounce if big, then steer toward landX until landed().
