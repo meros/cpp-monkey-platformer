@@ -99,7 +99,7 @@ void Game::goTitle() {
 	myRenderer->hidePlayer = true;
 	myScreen = Screen::Title;
 	screenT = 0.f;
-	titleSel = save.anyProgress() ? 0 : 1;
+	titleSel = 0;
 	paused = false;
 	fadeDir = -1.f;
 	fadeSpeed = 1.f / 0.6f;
@@ -327,12 +327,14 @@ void Game::updateTitle(float dt, const MenuInput& m) {
 		float u = 0.5f - 0.5f * std::cos(clock * 0.06f);
 		myRenderer->cam.setCenter(V2(400.f + u * (W - 800.f), myLevel->height * TILE_PX - 300.f));
 	}
+	// items: [Continue] / New Game / Level Select / Quit
 	bool hasContinue = save.anyProgress();
-	titleSel = menuMove(m, titleSel, 4, audio);
-	if (!hasContinue && titleSel == 0) titleSel = m.up ? 3 : 1;
+	int n = hasContinue ? 4 : 3;
+	titleSel = menuMove(m, std::min(titleSel, n - 1), n, audio);
 	if (m.confirm) {
 		audio.play(Sfx::UiConfirm);
-		switch (titleSel) {
+		int action = hasContinue ? titleSel : titleSel + 1;
+		switch (action) {
 		case 0: transition([this]() { goLevelSelect(save.firstUnfinished()); }); break;
 		case 1: transition([this]() { newGame(); }); break;
 		case 2: transition([this]() { goLevelSelect(save.firstUnfinished()); }); break;
@@ -694,11 +696,13 @@ void Game::drawTitle(sf::RenderTarget& t) {
 	           sf::Color(0, 0, 0, 120), V2(1.f, 2.f), Center);
 
 	// menu
-	std::vector<std::string> items = {save.anyProgress() ? "Continue" : "", "New Game", "Level Select", "Quit"};
+	std::vector<std::string> items = {"New Game", "Level Select", "Quit"};
+	if (save.anyProgress()) items.insert(items.begin(), "Continue");
+	float h = items.size() * 44.f + 28.f;
 	Canvas panel;
-	panel.roundRect(470.f, 272.f, 250.f, 210.f, 16.f, sf::Color(0x2E, 0x24, 0x18, 110));
+	panel.roundRect(470.f, 272.f, 250.f, h, 16.f, sf::Color(0x2E, 0x24, 0x18, 110));
 	panel.draw(t);
-	drawMenu(t, items, titleSel, V2(520.f, 290.f), 28, ui::Cream, ui::Banana);
+	drawMenu(t, items, titleSel, V2(520.f, 288.f), 28, ui::Cream, ui::Banana);
 	text(t, assets.regular, "Arrows / WASD to choose \xC2\xB7 Space to start", 16, V2(400.f, 566.f),
 	     withAlpha(ui::Cream, 220), Center);
 }
