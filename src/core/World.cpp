@@ -179,6 +179,22 @@ void World::buildTerrain() {
 		e.SetTwoSided(b2Vec2(level.widthM(), -60.f), b2Vec2(level.widthM(), level.heightM() + 20.f));
 		ground->CreateFixture(&fd);
 	}
+	// river beds: water that reaches the bottom row gets an invisible floor (DESIGN 3.7: water is
+	// never lethal, diving cannot drop Pip out of the map)
+	for (int x = 0; x < W; ++x) {
+		if (!level.waterAt(x, H - 1)) continue;
+		int x1 = x;
+		while (x1 + 1 < W && level.waterAt(x1 + 1, H - 1)) ++x1;
+		b2EdgeShape e;
+		e.SetTwoSided(b2Vec2(tileX(x), level.heightM()), b2Vec2(tileX(x1 + 1), level.heightM()));
+		b2FixtureDef fd;
+		fd.shape = &e;
+		fd.friction = 0.6f;
+		fd.filter.categoryBits = CAT_TERRAIN;
+		fd.filter.maskBits = MASK_ALL;
+		ground->CreateFixture(&fd);
+		x = x1;
+	}
 	// slopes
 	for (int y = 0; y < H; ++y) {
 		for (int x = 0; x < W; ++x) {
@@ -888,6 +904,21 @@ void World::postObjects(float dt) {
 	}
 	for (auto& l : floatLogs) {
 		if (!l->alive) continue;
+		// Over the falls: once a log's centre is above a bottomless air column it no longer
+		// collides with terrain, so it tumbles away instead of wedging in the gap.
+		b2Vec2 lp = l->body->GetPosition();
+		int cx = static_cast<int>(std::floor(lp.x / TILE)), cy = static_cast<int>(std::floor(lp.y / TILE));
+		if (!waterAtM(lp.x, lp.y)) {
+			bool bottomless = true;
+			for (int y = std::max(0, cy); y < level.height && bottomless; ++y)
+				if (level.solid(cx, y) || level.waterAt(cx, y)) bottomless = false;
+			if (bottomless) {
+				b2Filter f;
+				f.categoryBits = CAT_OBJECT;
+				f.maskBits = CAT_PLAYER | CAT_OBJECT;
+				l->body->GetFixtureList()->SetFilterData(f);
+			}
+		}
 		if (l->body->GetPosition().y > killY) {
 			b2->DestroyBody(l->body);
 			l->body = nullptr;

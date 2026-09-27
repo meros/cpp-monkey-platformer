@@ -424,7 +424,10 @@ void Player::preStep(World& world, const Input& in, float dt) {
 		}
 		if (v.y >= 0.f) jumpCutAvailable = false;
 
-		// horizontal control, relative to the carrier and excluding wind drift
+		// horizontal control, relative to the carrier and excluding wind drift. Dynamic carriers
+		// (logs, planks, crates) only lend their velocity while Pip stands still: running on them
+		// in the world frame avoids a feedback loop where Pip's push speeds up a light log.
+		if (!kinematicCarrier && in.dir != 0) carrier.x = 0.f;
 		float vx = v.x - carrier.x - windVel;
 		float target = in.dir * RUN_SPEED;
 		bool braking = false;
