@@ -78,12 +78,180 @@ bool level4(RouteBot& b) {
 	return b.ok;
 }
 
+bool level5(RouteBot& b) {
+	b.stopAt(10.6f);
+	b.bounce(12.f, false, 15.f, [&] { return b.onGroundRightOf(13.5f); });          // little bounce over M
+	b.passBeetles(26.6f);                                                           // beetle patrol
+	b.stopAt(26.8f);
+	b.bounce(28.f, true, 33.f, [&] { return b.grounded() && b.feet() < 30.5f; });   // big bounce up the wall
+	b.passBeetles(49.5f);                                                           // plateau beetle
+	b.until("drop into the hollow", 240, [&] { return RouteBot::hold(1); }, [&] { return b.grounded() && b.feet() > 37.5f; });
+	b.idle(10);
+	b.bounce(54.f, true, 58.5f, [&] { return b.grounded() && b.feet() < 32.5f; });  // onto the pillar
+	b.stopAt(57.8f);
+	b.bounce(59.f, true, 66.f, [&] { return b.grounded() && b.feet() < 26.5f; });   // up to the branch
+	b.stopAt(67.5f);
+	b.jumpAt(NAN, 1, 16, 1, [&] { return b.onGroundRightOf(71.f); });              // onto the upper plateau
+	b.stopAt(78.6f);
+	b.bounce(80.f, true, 84.6f, [&] { return b.grounded() && b.feet() < 20.5f; }); // mushroom -> branch
+	b.stopAt(84.8f);
+	b.bounce(86.f, true, 94.f, [&] { return b.grounded() && b.feet() < 14.5f; });   // branch mushroom -> tower
+	b.until("exit", 600, [&] { return RouteBot::hold(1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
+bool level6(RouteBot& b) {
+	Crate* first = nullptr;
+	for (auto& c : b.w->crates)
+		if (c->body->GetPosition().x < 8.f) first = c.get();
+	// push the crate to the wall, use it as a step
+	b.until("push crate", 600, [&] { return RouteBot::hold(1); },
+	        [&] { return first->body->GetPosition().x / cfg::TILE > 15.3f && std::fabs(first->body->GetLinearVelocity().x) < 0.05f; });
+	b.idle(10);
+	b.jumpAt(NAN, 1, 14, 1, [&] { return b.onKind(Kind::Crate); });
+	b.idle(5);
+	b.jumpAt(NAN, 1, 40, 1, [&] { return b.grounded() && b.feet() < 25.5f; });
+	// tilting see-saw bridge over the pit
+	b.walkTo(26.5f);
+	b.until("drop", 120, [&] { return RouteBot::hold(1); }, [&] { return b.grounded() && b.feet() > 28.5f; });
+	b.stopAt(29.2f);
+	b.jumpAt(NAN, 1, 12, 1, [&] { return b.onKind(Kind::Seesaw); });
+	b.until("cross see-saw", 600, [&] { return RouteBot::hold(1); },
+	        [&] { return b.grounded() && b.tx() > 37.5f && !b.onKind(Kind::Seesaw); });
+	// the see-saw puzzle: walk under the raised end, board the low end right of the crate
+	Seesaw* ss = nullptr;
+	for (auto& q : b.w->seesaws)
+		if (q->limitDeg > 30.f) ss = q.get();
+	Crate* pc = nullptr;
+	for (auto& c : b.w->crates)
+		if (std::fabs(c->body->GetPosition().x - ss->pivot.x) < 2.f) pc = c.get();
+	auto localX = [&](b2Body* body) { return ss->body->GetLocalPoint(body->GetPosition()).x; };
+	b.stopAt(55.5f);
+	b.jumpAt(NAN, -1, 10, -1, [&] { return b.onKind(Kind::Seesaw); }, 240);
+	// push the crate up and over the pivot, then all the way down to the far lip
+	b.until("push crate over", 900, [&] { return RouteBot::hold(-1); },
+	        [&] { return ss->body->GetAngle() < 0.f && localX(pc->body) < -1.1f; });
+	b.idle(20);
+	// run up to the raised end and jump for the branch
+	b.until("run up", 300, [&] { return RouteBot::hold(1); },
+	        [&] { return b.onKind(Kind::Seesaw) && ss->body->GetLocalPoint(b.p().pos()).x > 1.25f; });
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 21.5f; });
+	b.stopAt(56.8f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 18.5f; });      // upper branch
+	b.jumpAt(NAN, 1, 16, 1, [&] { return b.grounded() && b.tx() > 60.3f; });        // wall top
+	// shelf with two crates and another 4-tall wall
+	b.walkTo(75.5f);
+	b.until("drop", 120, [&] { return RouteBot::hold(1); }, [&] { return b.grounded() && b.feet() > 23.5f; });
+	b.until("push crates", 900, [&] { return RouteBot::hold(1); },
+	        [&] { return b.tx() > 90.f && std::fabs(b.p().vel().x) < 0.05f; });
+	b.idle(10);
+	for (int k = 0; k < 3 && b.feet() > 21.f; ++k) {
+		b.jumpAt(NAN, 1, 40, 1, [&] { return b.grounded() && b.p().vel().y >= -0.01f; });
+		b.idle(5);
+	}
+	b.stopAt(105.f);
+	// see-saw bridge over the thorns: running jump onto its raised end
+	b.jumpAt(108.4f, 1, 30, 1, [&] { return b.onKind(Kind::Seesaw); });
+	b.until("cross see-saw", 600, [&] { return RouteBot::hold(1); },
+	        [&] { return b.grounded() && b.tx() > 118.5f && !b.onKind(Kind::Seesaw); });
+	b.passBeetles(138.f);
+	b.until("exit", 600, [&] { return RouteBot::hold(1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
+bool supportTile(const LevelData& L, int x, int y) {
+	char c = L.at(x, y);
+	return c == '#' || c == '%' || c == '=' || c == '/' || c == '\\';
+}
+
+bool level7(RouteBot& b) {
+	// tailwind jump over the 8-wide gap
+	b.stopAt(29.f);
+	b.jumpAt(30.85f, 1, 30, 1, [&] { return b.onGroundRightOf(39.f); });
+	// updraft 1: step in, rise, steer onto the ledge
+	b.stopAt(62.4f);
+	int uf = 0;
+	b.until("ride updraft 1", 600, [&] {
+		Input in = RouteBot::hold(b.feet() < 30.95f ? 1 : 0, uf < 10);
+		in.jumpPressed = uf++ == 0;
+		return in;
+	}, [&] { return b.grounded() && b.feet() < 31.5f && b.tx() > 65.f; });
+	// crumbling ledges against the wind: keep moving
+	b.walkTo(70.f);
+	int air = 0;
+	b.until("crumbles", 900, [&] {
+		Input in = RouteBot::hold(1);
+		if (b.grounded()) {
+			air = 0;
+			int x = static_cast<int>(std::floor(b.tx() + 0.5f)), y = static_cast<int>(std::floor(b.feet() + 0.1f));
+			if (!supportTile(b.L, x, y)) {
+				in.jumpPressed = true;
+				in.jumpHeld = true;
+			}
+		} else {
+			in.jumpHeld = ++air < 25;
+		}
+		return in;
+	}, [&] { return b.grounded() && b.tx() > 95.2f; });
+	// updraft 2 to the top plateau
+	b.until("ride updraft 2", 900, [&] {
+		return RouteBot::hold(b.feet() < 8.95f ? -1 : (b.tx() < 96.4f ? 1 : 0));
+	}, [&] { return b.grounded() && b.feet() < 9.5f && b.tx() < 95.5f; });
+	b.until("exit", 900, [&] { return RouteBot::hold(-1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
+bool level8(RouteBot& b) {
+	auto mover = [&](int i) { return b.w->movers[i]->body; };
+	// lily pads across pool 1
+	b.stopAt(20.3f);
+	b.hopOnto(mover(0), 1, 2.f, 5.f);
+	b.ride([&] { return b.w->movers[0]->body->GetLinearVelocity().x == 0.f && b.tx() > 30.f; });
+	b.hopOnto(mover(1), 1, 2.f, 6.6f);
+	b.ride([&] { return b.tx() > 45.5f; });
+	b.until("to the bank", 300, [&] {
+		Input in = RouteBot::hold(1, true);
+		in.jumpPressed = b.grounded() && b.tx() > 45.5f;
+		return in;
+	}, [&] { return b.onGroundRightOf(51.f); });
+	// run under the first hanging log before it lands
+	b.walkTo(69.f);
+	b.stopAt(68.4f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 21.5f; });   // branch 1
+	b.stopAt(72.8f);
+	b.jumpAt(NAN, 1, 30, 1, [&] { return b.grounded() && b.feet() < 18.5f; });   // branch 2
+	b.stopAt(77.3f);
+	b.jumpAt(NAN, 1, 14, 1, [&] { return b.onKind(Kind::FallLog); });              // onto the hanging log
+	FallLog* big = nullptr;
+	for (auto& l : b.w->fallLogs)
+		if (l->tiles == 8) big = l.get();
+	b.ride([&] { return big->state == FallLog::Resting; });                       // it drops and bridges the pit
+	b.walkTo(95.f);
+	// pool 2: rising pad, branch, drifting pad
+	b.stopAt(100.3f);
+	b.hopOnto(mover(2), 1, 1.5f, 4.2f, 1.3f);
+	b.ride([&] { return b.w->movers[2]->body->GetPosition().y / cfg::TILE < 18.4f; });
+	b.jumpAt(NAN, 1, 20, 1, [&] { return b.grounded() && b.tx() > 107.f && b.feet() < 18.5f; });
+	b.stopAt(110.2f);
+	b.hopOnto(mover(3), 1, 1.f, 3.5f, 1.f);
+	b.ride([&] { return b.tx() > 123.5f; });
+	b.until("to the bank", 300, [&] {
+		Input in = RouteBot::hold(1, true);
+		in.jumpPressed = b.grounded();
+		return in;
+	}, [&] { return b.onGroundRightOf(126.f); });
+	// gauntlet: three hanging logs and two beetles
+	b.gauntlet(163.f);
+	b.until("exit", 600, [&] { return RouteBot::hold(1); }, [&] { return b.w->complete; });
+	return b.ok;
+}
+
 struct Route {
 	int level;
 	bool (*fn)(RouteBot&);
 };
 
-const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}};
+const Route kRoutes[] = {{1, level1}, {2, level2}, {3, level3}, {4, level4}, {5, level5}, {6, level6}, {7, level7}, {8, level8}};
 
 } // namespace
 

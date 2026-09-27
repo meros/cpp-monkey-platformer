@@ -462,9 +462,12 @@ void World::buildObjects() {
 			m->tripTime = std::max(0.2f, o.get("t", 3));
 			m->lilyPad = level.biome == Biome::Swamp || level.biome == Biome::River || level.biome == Biome::Storm;
 			m->flower = (d % 3 == 1);
+			// Even-numbered movers run half a cycle out of phase, so neighbouring pads meet at
+			// their near ends (level 8: pad 1's far end is 4 tiles from pad 2's near end).
+			if (d % 2 == 0) m->t = m->tripTime + 0.4f;
 			b2BodyDef mbd;
 			mbd.type = b2_kinematicBody;
-			mbd.position = m->start;
+			mbd.position = m->t > 0.f ? m->end : m->start;
 			m->body = b2->CreateBody(&mbd);
 			setEntity(m->body, m.get());
 			addBox(m->body, w * TILE * 0.5f, 0.15f, b2Vec2(0, 0), 1.f, 1.0f, CAT_OBJECT, objMask);
@@ -498,6 +501,22 @@ void World::buildObjects() {
 			jd.upperAngle = s->limitDeg * b2_pi / 180.f;
 			b2->CreateJoint(&jd);
 			seesaws.push_back(std::move(s));
+		}
+	}
+	// A crate spawned above a see-saw starts resting on it, with the plank already tipped to its
+	// limit on that side (DESIGN 4.3 level 6: "a crate starts on the right end ... holding it
+	// down as a ramp"). Dropping it on a level plank would slam the plank and fling the crate.
+	for (auto& ss : seesaws) {
+		float hw = ss->w * TILE * 0.5f;
+		for (auto& cr : crates) {
+			b2Vec2 cp = cr->body->GetPosition();
+			float dx = cp.x - ss->pivot.x;
+			if (std::fabs(dx) > hw - 0.1f || cp.y > ss->pivot.y || cp.y < ss->pivot.y - 1.6f) continue;
+			float ang = (dx > 0.f ? 1.f : -1.f) * ss->limitDeg * b2_pi / 180.f;
+			ss->body->SetTransform(ss->pivot, ang);
+			b2Rot r(ang);
+			b2Vec2 local(dx, -(0.075f + 0.24f + 0.004f));
+			cr->body->SetTransform(ss->pivot + b2Mul(r, local), ang);
 		}
 	}
 	// pulleys: create every platform, then one joint per pair

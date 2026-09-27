@@ -40,9 +40,15 @@ public:
 	bool grounded() { return p().grounded && p().state == PState::Ground; }
 
 	int trace = 0; // print every N frames when > 0
+	int bounces = 0, grabs = 0;
 	void step(const Input& in) {
 		w->step(in);
 		++frames;
+		for (const GameEvent& e : w->events) {
+			if (e.type == Ev::Bounce) ++bounces;
+			if (e.type == Ev::RopeGrab) ++grabs;
+		}
+		w->events.clear();
 		if (trace > 0 && frames % trace == 0)
 			std::printf("        f=%5d tile (%6.2f, feet %6.2f) st=%d v=(%5.2f,%6.2f) in=%2d%s%s seg=%d\n", frames, tx(), feet(),
 			            static_cast<int>(p().state), p().vel().x, p().vel().y, in.dir, in.jumpHeld ? " J" : "",
@@ -232,6 +238,154 @@ public:
 		             [&] {
 			             return grounded() && tx() > targetX && p().groundBody && p().groundBody->GetType() == b2_staticBody;
 		             });
+	}
+	// Walk right to x; hop over (or onto) beetles that come near on the way.
+	bool passBeetles(float x, int maxF = 1200) {
+		int air = 0;
+		return until("pass beetles", maxF,
+		             [&] {
+			             Input in = hold(1);
+			             if (grounded()) {
+				             air = 0;
+				             for (auto& be : w->beetles) {
+					             if (be->dead || !be->body) continue;
+					             b2Vec2 bp = be->body->GetPosition();
+					             float dx = bp.x / cfg::TILE - tx(), dy = bp.y / cfg::TILE - (feet() - 0.3f);
+					             if (dx > 0.6f && dx < 3.2f && std::fabs(dy) < 0.8f) {
+						             in.jumpPressed = true;
+						             in.jumpHeld = true;
+					             }
+				             }
+			             } else {
+				             in.jumpHeld = ++air < 20;
+			             }
+			             return in;
+		             },
+		             [&] { return grounded() && tx() >= x; });
+	}
+	// From the ground (or a ledge) next to a mushroom at tile column mushX: hop onto its cap,
+	// holding Space for the big bounce if big, then steer toward landX until landed().
+	bool bounce(float mushX, bool big, float landX, const std::function<bool()>& landed, int maxF = 900) {
+		int f = 0;
+		bool bounced = false;
+		int b0 = bounces;
+		return until("bounce", maxF,
+		             [&] {
+			             Input in;
+			             float target = bounced ? landX : mushX + 0.5f;
+			             float diff = target - tx();
+			             in.dir = diff > 0.15f ? 1 : (diff < -0.15f ? -1 : 0);
+			             if (f == 0) in.jumpPressed = true;
+			             in.jumpHeld = f < 4 || (big && !bounced && p().vel().y > 0.f) || (bounced && f < 400);
+			             if (bounces > b0) bounced = true;
+			             ++f;
+			             return in;
+		             },
+		             [&] { return bounced && landed(); });
+	}
+	// Wait (standing) until the target body is within [minD, maxD] tiles horizontally (signed in
+	// dir) and not more than maxRise tiles above the feet, then jump onto it, steering to its centre.
+	bool hopOnto(b2Body* target, int dir, float minD, float maxD, float maxRise = 2.5f, int maxF = 1500) {
+		bool jumped = false;
+		int f = 0;
+		return until("hop onto platform", maxF,
+		             [&] {
+			             Input in;
+			             b2Vec2 tp = target->GetPosition();
+			             float d = (tp.x / cfg::TILE - tx()) * dir;
+			             float rise = feet() - tp.y / cfg::TILE;
+			             if (!jumped) {
+				             if (grounded() && d >= minD && d <= maxD && rise <= maxRise && rise > -4.f) {
+					             jumped = true;
+					             in.jumpPressed = true;
+					             in.jumpHeld = true;
+					             in.dir = dir;
+				             }
+			             } else {
+				             ++f;
+				             float diff = tp.x / cfg::TILE - tx();
+				             in.dir = diff > 0.25f ? 1 : (diff < -0.25f ? -1 : 0);
+				             in.jumpHeld = f < 20;
+			             }
+			             return in;
+		             },
+		             [&] { return jumped && grounded() && p().groundBody == target; });
+	}
+	// Ride the platform we stand on (keeping to its centre) until cond().
+	bool ride(const std::function<bool()>& cond, int maxF = 1500) {
+		b2Body* body = p().groundBody;
+		return until("ride", maxF,
+		             [&] {
+			             Input in;
+			             if (body) {
+				             float diff = body->GetPosition().x / cfg::TILE - tx();
+				             in.dir = diff > 0.3f ? 1 : (diff < -0.3f ? -1 : 0);
+			             }
+			             return in;
+		             },
+		             cond);
+	}
+	// Advance right through hanging logs and beetles: poke each hanging log's trigger zone and
+	// back off until it has landed, jump walls / landed logs, hop beetles when nothing is falling.
+	bool gauntlet(float x, int maxF = 3000) {
+		FallLog* waitFor = nullptr;
+		int retreat = 0, air = 0;
+		return until("gauntlet", maxF,
+		             [&] {
+			             Input in = hold(1);
+			             if (!grounded()) {
+				             in.jumpHeld = ++air < 20;
+				             return in;
+			             }
+			             air = 0;
+			             if (waitFor) {
+				             if (waitFor->state == FallLog::Hanging) return in; // keep stepping in until it creaks
+				             in.dir = retreat-- > 0 ? -1 : 0;
+				             if (waitFor->state == FallLog::Resting && retreat <= 0) waitFor = nullptr;
+				             return in;
+			             }
+			             bool danger = false;
+			             for (auto& lg : w->fallLogs) {
+				             float l = lg->x0 * 1.f, r = l + lg->tiles;
+				             if (lg->state == FallLog::Hanging && l - (tx() + 0.4f) < 0.6f && l - (tx() + 0.4f) > -0.2f &&
+				                 feet() > lg->y0 && feet() < lg->y0 + 8) {
+					             waitFor = lg.get();
+					             retreat = 40;
+					             in.dir = 1; // step into the zone this frame
+					             return in;
+				             }
+				             if ((lg->state == FallLog::Triggered || lg->state == FallLog::Falling) && tx() > l - 3.f && tx() < r + 3.f)
+					             danger = true;
+			             }
+			             int tx0 = static_cast<int>(std::floor(tx() + 0.45f)), ty0 = static_cast<int>(std::floor(feet() - 0.5f));
+			             bool wall = L.solid(tx0, ty0);
+			             for (auto& lg : w->fallLogs) {
+				             if (lg->state != FallLog::Resting) continue;
+				             b2Vec2 lp = lg->body->GetPosition();
+				             float l = lp.x / cfg::TILE - lg->tiles * 0.5f;
+				             if (l - tx() > 0.3f && l - tx() < 0.9f && std::fabs(lp.y / cfg::TILE - (feet() - 0.5f)) < 0.8f) wall = true;
+			             }
+			             bool beetle = false;
+			             for (auto& be : w->beetles) {
+				             if (be->dead || !be->body) continue;
+				             b2Vec2 bp = be->body->GetPosition();
+				             float dx = bp.x / cfg::TILE - tx(), dy = bp.y / cfg::TILE - (feet() - 0.3f);
+				             if (dx > 0.6f && dx < 3.2f && std::fabs(dy) < 0.8f) beetle = true;
+			             }
+			             if ((wall || beetle) && !danger) {
+				             in.jumpPressed = true;
+				             in.jumpHeld = true;
+			             } else if (danger && beetle) {
+				             in.dir = -1;
+			             }
+			             return in;
+		             },
+		             [&] { return grounded() && tx() >= x; });
+	}
+	Entity* groundEntity() { return grounded() && p().groundBody ? entityOf(p().groundBody) : nullptr; }
+	bool onKind(Kind k) {
+		Entity* e = groundEntity();
+		return e && e->kind == k;
 	}
 	void report(const char* name) const {
 		if (ok)

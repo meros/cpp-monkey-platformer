@@ -299,7 +299,9 @@ void Player::preStep(World& world, const Input& in, float dt) {
 	const bool windOn = world.windActive();
 	uint8_t windCode = windOn ? world.windAtM(p.x, p.y) : static_cast<uint8_t>(WI_NONE);
 	int windDir = windCode == WI_LEFT ? -1 : windCode == WI_RIGHT ? 1 : 0;
-	inUpdraft = windCode == WI_UP;
+	// Updrafts lift while any of Pip is in the column (sampled at centre and feet), so he leaves
+	// the top of the column with his feet and coasts ~0.6 tile above it (DESIGN 3.13).
+	inUpdraft = windCode == WI_UP || (windOn && world.windAtM(p.x, p.y + PLAYER_H * 0.5f - 0.05f) == WI_UP);
 	inWind = windDir != 0;
 
 	// --- water transitions ---
@@ -445,7 +447,10 @@ void Player::preStep(World& world, const Input& in, float dt) {
 		(void)braking;
 
 		// wind drift (3.13): accumulates while in wind, decays outside
-		if (windDir != 0) {
+		if (windDir != 0 && grounded && in.dir != 0) {
+			// running on the ground: Pip's feet win, drift bleeds off quickly
+			windVel -= windVel * std::min(1.f, 8.f * dt);
+		} else if (windDir != 0) {
 			windVel += windDir * (grounded ? WIND_GROUND : WIND_AIR) * dt;
 			windVel -= windVel * (grounded ? 2.f : 0.35f) * dt;
 		} else {
