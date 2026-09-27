@@ -172,6 +172,7 @@ void Player::doJump(World& world, float vy, float pitch) {
 	jumpBuffer = 0.f;
 	sinceJump = 0.f;
 	jumpCutAvailable = true;
+	stretchTimer = 0.14f;
 	b2Vec2 p = body->GetPosition();
 	world.emit(Ev::Jump, p.x, bottom(), pitch);
 }
@@ -294,6 +295,7 @@ void Player::preStep(World& world, const Input& in, float dt) {
 	ropeCooldown = std::max(0.f, ropeCooldown - dt);
 	swimCooldown = std::max(0.f, swimCooldown - dt);
 	squashTimer = std::max(0.f, squashTimer - dt);
+	stretchTimer = std::max(0.f, stretchTimer - dt);
 	bounceWindow = std::max(0.f, bounceWindow - dt);
 
 	const bool windOn = world.windActive();
@@ -578,11 +580,15 @@ void Player::postStep(World& world, float dt) {
 			sinceJump = 0.f;
 			jumpCutAvailable = false;
 			m->squash = 1.f;
+			stretchTimer = 0.2f;
 			world.emit(Ev::Bounce, p.x, bottom(), big ? 1.25f : 1.f);
 		} else if (airVy > HARD_LAND_VY) {
 			squashTimer = 0.08f;
+			squashAmt = 1.f;
 			world.emit(Ev::LandHard, p.x, bottom(), airVy);
 		} else if (airVy > 1.5f) {
+			squashTimer = 0.06f;
+			squashAmt = 0.45f;
 			world.emit(Ev::LandSoft, p.x, bottom(), airVy);
 		}
 		// crumbling ledge trigger

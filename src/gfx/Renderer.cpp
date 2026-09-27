@@ -361,19 +361,29 @@ void Renderer::drawPlayer(sf::RenderTarget& t, const World& w, float time) const
 	sf::Sprite s(tex);
 	b2Vec2 c = p.pos();
 	V2 centre(c.x * PPM, c.y * PPM);
-	// frame bottom-centre on the collider bottom-centre; origin at the collider centre
-	s.setOrigin(32.f, 64.f - PLAYER_H * 0.5f * PPM);
-	s.setPosition(std::round(centre.x), std::round(centre.y));
+	// frame bottom-centre on the collider bottom-centre; squash, stretch and lean pivot on
+	// the feet so Pip never floats while deforming
+	s.setOrigin(32.f, 64.f);
+	s.setPosition(std::round(centre.x), std::round(p.bottom() * PPM));
 	float sx = 1.f, sy = 1.f;
 	float angle = 0.f;
 	sf::Uint8 alpha = 255;
 	if (p.state == PState::Rope) {
 		angle = p.spriteAngle * 180.f / 3.14159f;
 		s.setOrigin(32.f, 32.f);
+		s.setPosition(std::round(centre.x), std::round(centre.y));
 	}
 	if (p.squashTimer > 0.f) {
-		sx = 1.15f;
-		sy = 0.85f;
+		sx = 1.f + 0.15f * p.squashAmt;
+		sy = 1.f - 0.15f * p.squashAmt;
+	} else if (p.stretchTimer > 0.f && p.state == PState::Air) {
+		float u = std::min(1.f, p.stretchTimer / 0.14f);
+		sx = 1.f - 0.10f * u;
+		sy = 1.f + 0.14f * u;
+	}
+	if (p.state == PState::Air) {
+		// lean into the direction of travel (a little tilt sells the arc)
+		angle += std::clamp(p.vel().x * 1.4f, -7.f, 7.f);
 	}
 	if (p.state == PState::Swim) s.move(0.f, std::round(2.f * std::sin(time * 4.f)));
 	if (p.state == PState::Dead) {
@@ -381,17 +391,35 @@ void Renderer::drawPlayer(sf::RenderTarget& t, const World& w, float time) const
 		angle = u * 540.f * (p.facing > 0 ? 1.f : -1.f);
 		sx = sy = 1.f - u * 0.9f;
 		s.setOrigin(32.f, 40.f);
+		s.setPosition(std::round(centre.x), std::round(centre.y));
 		if (p.deathSpin > DEATH_ANIM) alpha = 0;
 	}
 	if (p.state == PState::Exiting) alpha = static_cast<sf::Uint8>(255 * std::clamp(p.fade, 0.f, 1.f));
 	s.setRotation(angle);
 	s.setScale(sx, sy);
 	s.setColor(sf::Color(255, 255, 255, alpha));
-	// soft contact shadow
-	if (p.state == PState::Ground) {
-		Canvas sh;
-		sh.ellipse(V2(centre.x, p.bottom() * PPM - 1.f), 20.f, 4.f, sf::Color(0, 0, 0, 45));
-		sh.draw(t);
+	// soft contact shadow (shrinks and fades as Pip rises, so jumps read in the air too)
+	if (p.state == PState::Ground || p.state == PState::Air) {
+		// nearest static floor (terrain or a branch) under the feet, up to 3 m down
+		const LevelData& L = w.level;
+		int tx = static_cast<int>(std::floor(c.x / TILE));
+		int ty0 = static_cast<int>(std::floor((p.bottom() + 0.02f) / TILE));
+		float gy = p.bottom() + 3.f;
+		for (int ty = ty0; ty < ty0 + 7 && ty < L.height; ++ty) {
+			char ch = L.at(tx, ty);
+			if (ch == '#' || ch == '=' || ch == '/' || ch == '\\') {
+				gy = ty * TILE;
+				break;
+			}
+		}
+		if (p.state == PState::Ground) gy = p.bottom();
+		float h = std::max(0.f, gy - p.bottom());
+		if (h < 3.f) {
+			float k = 1.f - h / 3.f;
+			Canvas sh;
+			sh.ellipse(V2(centre.x, gy * PPM - 1.f), 12.f + 8.f * k, 2.5f + 1.5f * k, sf::Color(0, 0, 0, static_cast<sf::Uint8>(50 * k)));
+			sh.draw(t);
+		}
 	}
 	t.draw(s);
 }

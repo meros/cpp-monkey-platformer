@@ -71,7 +71,9 @@ public:
 	PAnim anim = PAnim::Stand;
 	float animTimer = 0.f;
 	float spriteAngle = 0.f;   // radians, on vine
-	float squashTimer = 0.f;   // hard-land squash
+	float squashTimer = 0.f;   // landing squash
+	float squashAmt = 1.f;     // 1 = hard landing, less for a soft one
+	float stretchTimer = 0.f;  // take-off / bounce stretch
 	float swimPhase = 0.f;
 	float deathSpin = 0.f;
 	float fade = 1.f;          // exit fade
